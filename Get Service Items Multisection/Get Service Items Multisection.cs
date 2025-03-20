@@ -140,10 +140,7 @@ namespace Get_ServiceItemsMultipleSections_1
 					new GQICell { Value = item.ServiceItemScript ?? String.Empty },
 					new GQICell { Value = item.ImplementationReference ?? String.Empty },
 					new GQICell { Value = GetImplementationRefName(item.ImplementationReference) },
-				})
-			{
-				Metadata = new GenIfRowMetadata(new[] { new ObjectRefMetadata { Object = SlcServicemanagementIds.Sections.ServiceItems.Id } }),
-			};
+				});
 		}
 
 		private string GetImplementationRefName(string reference)
