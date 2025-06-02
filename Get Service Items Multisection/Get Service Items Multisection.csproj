@@ -14,12 +14,10 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Skyline.DataMiner.Dev.Automation" Version="10.5.3" />
-  </ItemGroup>
-  <Import Project="..\SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems" Label="Shared" />
-  <ItemGroup>
-    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="1.2.5">
+    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers" Version="2.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <Import Project="..\SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems" Label="Shared" />
 </Project>
