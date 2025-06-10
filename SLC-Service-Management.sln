@@ -68,8 +68,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Operators", "Operators", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLC-SM-DS-Get Service Order Item Buttons", "SLC-SM-DS-Get Service Order Item Buttons\SLC-SM-DS-Get Service Order Item Buttons.csproj", "{A857A3E9-1EBB-46EC-BFF7-7CC5B5E36014}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SLC_SM_Common_Shared", "SLC_SM_Common_Shared\SLC_SM_Common_Shared.shproj", "{FB84ACE1-B36A-4D9A-BAEB-B45DEEEE85A0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceOrderItem_StateTranstitions", "ServiceOrderItem_StateTranstitions\ServiceOrderItem_StateTranstitions.csproj", "{6E59C0E2-E3BB-4DE2-9607-4D17C492980C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SLC_SM_Service_StateTransitions", "SLC_SM_Service_StateTransitions\SLC_SM_Service_StateTransitions.csproj", "{41E720FB-A284-4B5A-973E-8709EBA4D602}"
@@ -79,6 +77,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_IAS_PopupMessage", "SLC_SM_PopupMessage\SLC_SM_IAS_PopupMessage.csproj", "{E41B0692-3FDB-493D-A2ED-CA23F2BB246D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_AS_AddServiceItem", "SLC_SM_AS_AddServiceItem\SLC_SM_AS_AddServiceItem.csproj", "{6F3390AB-D042-499A-A77C-8AFFB6487C03}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_IAS_Service_Spec_Configuration", "SLC_SM_IAS_Service_Spec_Configuration\SLC_SM_IAS_Service_Spec_Configuration.csproj", "{53B0D516-3E2A-4BC1-B41A-E8AB059D4947}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_AS_Ingest_Acquisition_Data", "SLC_SM_AS_Ingest_Acquisition_Data\SLC_SM_AS_Ingest_Acquisition_Data.csproj", "{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -198,6 +200,14 @@ Global
 		{6F3390AB-D042-499A-A77C-8AFFB6487C03}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F3390AB-D042-499A-A77C-8AFFB6487C03}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6F3390AB-D042-499A-A77C-8AFFB6487C03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53B0D516-3E2A-4BC1-B41A-E8AB059D4947}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53B0D516-3E2A-4BC1-B41A-E8AB059D4947}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53B0D516-3E2A-4BC1-B41A-E8AB059D4947}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53B0D516-3E2A-4BC1-B41A-E8AB059D4947}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -226,24 +236,19 @@ Global
 		{C50B526F-176F-4CD2-91C3-108403784385} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
 		{43FD8F6F-BAB0-4284-BD24-8D972CEA2F13} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
 		{A857A3E9-1EBB-46EC-BFF7-7CC5B5E36014} = {D44EC38B-25B7-4DDE-AB69-528AE471A88F}
-		{FB84ACE1-B36A-4D9A-BAEB-B45DEEEE85A0} = {FD02C1BF-1485-4035-87F4-EF05C72D606F}
 		{6E59C0E2-E3BB-4DE2-9607-4D17C492980C} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
 		{41E720FB-A284-4B5A-973E-8709EBA4D602} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
 		{586FEA8A-3436-49EB-81AA-6D990891544D} = {D44EC38B-25B7-4DDE-AB69-528AE471A88F}
 		{E41B0692-3FDB-493D-A2ED-CA23F2BB246D} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
 		{6F3390AB-D042-499A-A77C-8AFFB6487C03} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
+		{53B0D516-3E2A-4BC1-B41A-E8AB059D4947} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
+		{B0BEC97F-D7F1-40FE-8F26-F2F925F99AF0} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {38C318B5-7814-41CC-9BA6-DC5069897881}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{4e589f15-b7ad-4061-98d9-b2a162e69f30}*SharedItemsImports = 5
 		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{57dd8900-2c28-49c6-b4f7-7b0b50fd68dc}*SharedItemsImports = 5
 		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{586fea8a-3436-49eb-81aa-6d990891544d}*SharedItemsImports = 5
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{89096365-07a1-4777-828c-0bdd07d11ff2}*SharedItemsImports = 5
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{b6bcbe1b-3a15-4970-a70d-4eafabfe4299}*SharedItemsImports = 5
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{f42cfeb7-442e-494a-88f1-73d1e9cbfd2c}*SharedItemsImports = 5
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{f53f12c2-d3ab-4bf5-b1c8-d3dd7fee2a39}*SharedItemsImports = 5
-		SLC_SM_Common_Shared\SLC_SM_Common_Shared.projitems*{fb84ace1-b36a-4d9a-baeb-b45deeee85a0}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal
