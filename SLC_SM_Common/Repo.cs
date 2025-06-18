@@ -1,84 +1,42 @@
 namespace Library
 {
-	using System.Linq;
-	using DomHelpers.SlcServicemanagement;
-	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net;
+	using SLC_SM_Common.API.ServiceManagementApi;
 
 	public sealed class Repo
 	{
-		public Repo(DomHelper domHelper)
+		public Repo(IConnection connection)
 		{
-			AllCategories = GetAllCategories(domHelper);
-			AllSpecs = GetAllSpecs(domHelper);
-			AllServices = GetAllSpecServices(domHelper);
-			AllProperties = GetAllProperties(domHelper);
-			AllPropertyValues = GetAllPropertyValues(domHelper);
-			AllServiceOrderItems = GetAllServiceOrderItems(domHelper);
-			AllConfigurations = GetAllConfigurationItems(domHelper);
+			ServiceCategories = new DataHelperServiceCategory(connection);
+			ServiceSpecifications = new DataHelperServiceSpecification(connection);
+			ServiceProperties = new DataHelperServiceProperties(connection);
+			ServicePropertyValues = new DataHelperServicePropertyValues(connection);
+			ServiceOrders = new DataHelperServiceOrder(connection);
+			ServiceOrderItems = new DataHelperServiceOrderItem(connection);
+			Services = new DataHelperService(connection);
+			ServiceOrderItemConfigurationValues = new DataHelperServiceOrderItemConfigurationValue(connection);
+			ServiceSpecificationConfigurationValues = new DataHelperServiceSpecificationConfigurationValue(connection);
+			ServiceConfigurationValues = new DataHelperServiceConfigurationValue(connection);
 		}
 
-		public ServiceOrderItemsInstance[] AllServiceOrderItems { get; }
+		public DataHelperServiceOrder ServiceOrders { get; }
 
-		public ServiceCategoryInstance[] AllCategories { get; }
+		public DataHelperServiceOrderItem ServiceOrderItems { get; }
 
-		public ServiceSpecificationsInstance[] AllSpecs { get; }
+		public DataHelperServiceSpecification ServiceSpecifications { get; }
 
-		public ServicesInstance[] AllServices { get; }
+		public DataHelperServiceProperties ServiceProperties { get; }
 
-		public ServicePropertiesInstance[] AllProperties { get; }
+		public DataHelperServicePropertyValues ServicePropertyValues { get; }
 
-		public ServicePropertyValuesInstance[] AllPropertyValues { get; }
+		public DataHelperService Services { get; }
 
-		public ServiceConfigurationInstance[] AllConfigurations { get; }
+		public DataHelperServiceCategory ServiceCategories { get; }
 
-		private ServiceConfigurationInstance[] GetAllConfigurationItems(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServiceConfiguration.Id))
-				.Select(x => new ServiceConfigurationInstance(x))
-				.ToArray();
-		}
+		public DataHelperServiceConfigurationValue ServiceConfigurationValues { get; }
 
-		private ServiceOrderItemsInstance[] GetAllServiceOrderItems(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServiceOrderItems.Id))
-				.Select(x => new ServiceOrderItemsInstance(x))
-				.ToArray();
-		}
+		public DataHelperServiceSpecificationConfigurationValue ServiceSpecificationConfigurationValues { get; }
 
-		private ServiceCategoryInstance[] GetAllCategories(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServiceCategory.Id))
-				.Select(x => new ServiceCategoryInstance(x))
-				.ToArray();
-		}
-
-		private ServicePropertiesInstance[] GetAllProperties(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServiceProperties.Id))
-				.Select(x => new ServicePropertiesInstance(x))
-				.ToArray();
-		}
-
-		private ServicePropertyValuesInstance[] GetAllPropertyValues(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServicePropertyValues.Id))
-				.Select(x => new ServicePropertyValuesInstance(x))
-				.ToArray();
-		}
-
-		private ServiceSpecificationsInstance[] GetAllSpecs(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.ServiceSpecifications.Id))
-				.Select(x => new ServiceSpecificationsInstance(x))
-				.ToArray();
-		}
-
-		private ServicesInstance[] GetAllSpecServices(DomHelper domHelper)
-		{
-			return domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcServicemanagementIds.Definitions.Services.Id))
-				.Select(x => new ServicesInstance(x))
-				.ToArray();
-		}
+		public DataHelperServiceOrderItemConfigurationValue ServiceOrderItemConfigurationValues { get; }
 	}
 }

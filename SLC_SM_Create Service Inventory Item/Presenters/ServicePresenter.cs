@@ -2,9 +2,13 @@
 {
 	using System;
 	using System.Linq;
-	using DomHelpers.SlcServicemanagement;
+
 	using Library;
+
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
+
+	using SLC_SM_Common.API.ServiceManagementApi;
+
 	using SLC_SM_Create_Service_Inventory_Item.Views;
 
 	public class ServicePresenter
@@ -12,30 +16,39 @@
 		private readonly Repo repo;
 		private readonly ServiceView view;
 		private readonly string[] getServiceLabels;
-		private ServicesInstance instanceToReturn;
+		private Models.Service instanceToReturn;
 
 		public ServicePresenter(Repo repo, ServiceView view, string[] getServiceLabels)
 		{
 			this.repo = repo;
 			this.view = view;
 			this.getServiceLabels = getServiceLabels;
-			instanceToReturn = new ServicesInstance();
+			instanceToReturn = new Models.Service
+			{
+				ID = Guid.NewGuid(),
+				Name = $"Service Inventory Item #{getServiceLabels.Length:000}",
+				Description = $"Service Inventory Item #{getServiceLabels.Length:000}",
+			};
+			view.TboxName.PlaceHolder = instanceToReturn.Name;
 
 			view.IndefiniteRuntime.Changed += (sender, args) => view.End.IsEnabled = !args.IsChecked;
 			view.TboxName.Changed += (sender, args) => ValidateLabel(args.Value);
 		}
 
-		public ServicesInstance Instance
+		public string Name => String.IsNullOrWhiteSpace(view.TboxName.Text) ? view.TboxName.PlaceHolder : view.TboxName.Text;
+
+		public Models.Service Instance
 		{
 			get
 			{
-				instanceToReturn.ServiceInfo.ServiceName = view.TboxName.Text;
-				instanceToReturn.ServiceInfo.ServiceStartTime = view.Start.DateTime.ToUniversalTime();
-				instanceToReturn.ServiceInfo.ServiceEndTime = view.IndefiniteRuntime.IsChecked ? default(DateTime?) : view.End.DateTime.ToUniversalTime();
-				instanceToReturn.ServiceInfo.Icon = instanceToReturn.ServiceInfo.Icon ?? String.Empty;
-				instanceToReturn.ServiceInfo.Description = instanceToReturn.ServiceInfo.Description ?? String.Empty;
-				instanceToReturn.ServiceInfo.ServiceCategory = view.ServiceCategory.Selected?.ID.Id;
-				instanceToReturn.ServiceInfo.ServiceSpecifcation = view.Specs.Selected?.ID.Id;
+				instanceToReturn.Name = Name;
+				instanceToReturn.Description = instanceToReturn.Description ?? String.Empty;
+				instanceToReturn.StartTime = view.Start.DateTime.ToUniversalTime();
+				instanceToReturn.EndTime = view.IndefiniteRuntime.IsChecked ? default(DateTime?) : view.End.DateTime.ToUniversalTime();
+				instanceToReturn.Icon = instanceToReturn.Icon ?? String.Empty;
+				instanceToReturn.Description = instanceToReturn.Description ?? String.Empty;
+				instanceToReturn.Category = view.ServiceCategory.Selected;
+				instanceToReturn.ServiceSpecificationId = view.Specs.Selected?.ID;
 
 				return instanceToReturn;
 			}
@@ -44,34 +57,33 @@
 		public void LoadFromModel()
 		{
 			// Load correct types
-			view.ServiceCategory.SetOptions(repo.AllCategories.OrderBy(x => x.Name).Select(x => new Option<ServiceCategoryInstance>(x.Name, x)));
+			view.ServiceCategory.SetOptions(repo.ServiceCategories.Read().OrderBy(x => x.Name).Select(x => new Option<Models.ServiceCategory>(x.Name, x)));
 
-			var specs = repo.AllSpecs.OrderBy(x => x.Name).Select(x => new Option<ServiceSpecificationsInstance>(x.Name, x)).ToList();
-			specs.Insert(0, new Option<ServiceSpecificationsInstance>("-None-", null));
+			var specs = repo.ServiceSpecifications.Read().OrderBy(x => x.Name).Select(x => new Option<Models.ServiceSpecification>(x.Name, x)).ToList();
+			specs.Insert(0, new Option<Models.ServiceSpecification>("-None-", null));
 			view.Specs.SetOptions(specs);
 
 			view.Start.DateTime = DateTime.Now + TimeSpan.FromHours(1);
 			view.End.DateTime = view.Start.DateTime + TimeSpan.FromDays(7);
 		}
 
-		public void LoadFromModel(ServicesInstance instance)
+		public void LoadFromModel(Models.Service instance)
 		{
-			var section = instance.ServiceInfo;
 			instanceToReturn = instance;
 
 			// Load correct types
 			LoadFromModel();
 
 			view.BtnAdd.Text = "Edit Service Inventory Item";
-			view.TboxName.Text = section.ServiceName;
-			if (instance.ServiceInfo.ServiceStartTime.HasValue)
+			view.TboxName.Text = instance.Name;
+			if (instance.StartTime.HasValue)
 			{
-				view.Start.DateTime = instance.ServiceInfo.ServiceStartTime.Value;
+				view.Start.DateTime = instance.StartTime.Value.ToLocalTime();
 			}
 
-			if (instance.ServiceInfo.ServiceEndTime.HasValue)
+			if (instance.EndTime.HasValue)
 			{
-				view.End.DateTime = instance.ServiceInfo.ServiceEndTime.Value;
+				view.End.DateTime = instance.EndTime.Value.ToLocalTime();
 				view.IndefiniteRuntime.IsChecked = false;
 			}
 			else
@@ -80,24 +92,15 @@
 				view.IndefiniteRuntime.IsChecked = true;
 			}
 
-			if (section.ServiceCategory.HasValue && repo.AllCategories.Any(x => x.ID.Id == section.ServiceCategory.Value))
+			if (instance.Category != null && view.ServiceCategory.Options.Any(s => s.Value?.ID == instance.Category.ID))
 			{
-				view.ServiceCategory.Selected = repo.AllCategories.FirstOrDefault(x => x.ID.Id == section.ServiceCategory.Value);
+				view.ServiceCategory.SelectedOption = view.ServiceCategory.Options.First(s => s.Value?.ID == instance.Category.ID);
 			}
 
-			if (section.ServiceSpecifcation.HasValue && repo.AllSpecs.Any(x => x.ID.Id == section.ServiceSpecifcation.Value))
+			if (instance.ServiceSpecificationId.HasValue && view.Specs.Options.Any(x => x.Value?.ID == instance.ServiceSpecificationId))
 			{
-				view.Specs.Selected = repo.AllSpecs.FirstOrDefault(x => x.ID.Id == section.ServiceSpecifcation.Value);
-			}
-
-			if (instance.ServiceInfo.ServiceStartTime.HasValue)
-			{
-				view.Start.DateTime = instance.ServiceInfo.ServiceStartTime.Value.ToLocalTime();
-			}
-
-			if (instance.ServiceInfo.ServiceEndTime.HasValue)
-			{
-				view.End.DateTime = instance.ServiceInfo.ServiceEndTime.Value.ToLocalTime();
+				view.Specs.SelectedOption = view.Specs.Options.First(x => x.Value?.ID == instance.ServiceSpecificationId);
+				view.Specs.IsEnabled = false;
 			}
 		}
 
@@ -129,8 +132,8 @@
 		{
 			if (String.IsNullOrWhiteSpace(newValue))
 			{
-				view.ErrorName.Text = "Please enter a value!";
-				return false;
+				view.ErrorName.Text = "Placeholder will be used";
+				return true;
 			}
 
 			if (getServiceLabels.Contains(newValue, StringComparer.InvariantCultureIgnoreCase))

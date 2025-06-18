@@ -55,10 +55,12 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 {
 	using System;
 	using System.Linq;
-	using DomHelpers.SlcServicemanagement;
+
+	using Library;
+
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
+	using SLC_SM_Common.API.ServiceManagementApi;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -101,57 +103,18 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 			}
 		}
 
-		private static void DeleteServiceItemFromInstance(DomHelper helper, ServiceOrdersInstance domInstance, Guid serviceOrderItemId)
+		private static void DeleteServiceItemFromInstance(Repo repo, Models.ServiceOrder domInstance, Guid serviceOrderItemId)
 		{
-			var itemToRemove = domInstance.ServiceOrderItems.FirstOrDefault(x => x.ServiceOrderItem == serviceOrderItemId);
+			var itemToRemove = domInstance.OrderItems.FirstOrDefault(x => x.ServiceOrderItem.ID == serviceOrderItemId);
 			if (itemToRemove == null)
 			{
 				throw new InvalidOperationException($"No Service order item exists with ID '{serviceOrderItemId}' to remove");
 			}
 
-			RemoveLinkedItems(helper, itemToRemove);
+			repo.ServiceOrderItems.TryDelete(itemToRemove.ServiceOrderItem);
 
-			domInstance.ServiceOrderItems.Remove(itemToRemove);
-			domInstance.Save(helper);
-		}
-
-		private static void RemoveLinkedItems(DomHelper helper, ServiceOrderItemsSection serviceOrderItem)
-		{
-			if (!serviceOrderItem.ServiceOrderItem.HasValue)
-			{
-				return;
-			}
-
-			var serviceOderItemToDelete = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(serviceOrderItem.ServiceOrderItem.Value)).FirstOrDefault();
-			if (serviceOderItemToDelete == null)
-			{
-				return;
-			}
-
-			helper.DomInstances.Delete(serviceOderItemToDelete);
-
-			var inst = new ServiceOrderItemsInstance(serviceOderItemToDelete);
-			if (inst.ServiceOrderItemServiceInfo.Configuration.HasValue)
-			{
-				var configToDelete = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(inst.ServiceOrderItemServiceInfo.Configuration.Value)).FirstOrDefault();
-				if (configToDelete == null)
-				{
-					return;
-				}
-
-				helper.DomInstances.Delete(configToDelete);
-			}
-
-			if (inst.ServiceOrderItemServiceInfo.Properties.HasValue)
-			{
-				var propToDelete = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(inst.ServiceOrderItemServiceInfo.Properties.Value)).FirstOrDefault();
-				if (propToDelete == null)
-				{
-					return;
-				}
-
-				helper.DomInstances.Delete(propToDelete);
-			}
+			domInstance.OrderItems.Remove(itemToRemove);
+			repo.ServiceOrders.CreateOrUpdate(domInstance);
 		}
 
 		private void RunSafe()
@@ -166,13 +129,10 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 				throw new InvalidOperationException("No Service Order Item ID provided as input to the script");
 			}
 
-			var domHelper = new DomHelper(_engine.SendSLNetMessages, SlcServicemanagementIds.ModuleId);
-			var domInstance = domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(domId)).FirstOrDefault()
-							  ?? throw new InvalidOperationException($"No DOM Instance with ID '{domId}' found on the system!");
-			var orderItemInstance = new ServiceOrdersInstance(domInstance);
+			var repo = new Repo(Engine.SLNetRaw);
+			var orderItemInstance = repo.ServiceOrders.Read().Find(x => x.ID == domId);
 
-			DeleteServiceItemFromInstance(domHelper, orderItemInstance, serviceOrderItemId);
-			throw new ScriptAbortException("OK");
+			DeleteServiceItemFromInstance(repo, orderItemInstance, serviceOrderItemId);
 		}
 	}
 }

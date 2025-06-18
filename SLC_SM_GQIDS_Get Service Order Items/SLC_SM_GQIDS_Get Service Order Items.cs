@@ -3,36 +3,40 @@ namespace SLC_SM_GQIDS_Get_Service_Order_Items_1
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers.SlcServicemanagement;
+
 	using Library;
+
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
+	using SLC_SM_Common.API.ServiceManagementApi;
 
 	// Required to mark the interface as a GQI data source
 	[GQIMetaData(Name = "Get_ServiceOrderItems")]
 	public class EventManagerGetMultipleSections : IGQIDataSource, IGQIInputArguments, IGQIOnInit
 	{
+		// TO BE removed when we can easily fetch this using the DOM Code Generated code
+		private static readonly List<ServiceOrderItemStatus> serviceOrderItemStatuseList = new List<ServiceOrderItemStatus>
+		{
+			new ServiceOrderItemStatus { Id = "06df5562-cd9b-4b0b-bd45-c58560a8b22a", Name = "New" },
+			new ServiceOrderItemStatus { Id = "d917fc53-2638-4ab9-9ac6-651ec5312bac", Name = "Acknowledged" },
+			new ServiceOrderItemStatus { Id = "331dc1c2-1950-4c00-a4ae-0aba674a30e6", Name = "In Progress" },
+			new ServiceOrderItemStatus { Id = "260a7073-e54e-4482-a8a7-2b4f2e49c42e", Name = "Completed" },
+			new ServiceOrderItemStatus { Id = "6a01a480-4c38-4db7-b545-72ba05742a7e", Name = "Rejected" },
+			new ServiceOrderItemStatus { Id = "7f13d019-29de-43cb-a510-ab2b2a77e785", Name = "Failed" },
+			new ServiceOrderItemStatus { Id = "f8a8d853-faaf-401c-9865-71e314614023", Name = "Partially Failed" },
+			new ServiceOrderItemStatus { Id = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44", Name = "Held" },
+			new ServiceOrderItemStatus { Id = "23f9fa75-32b8-4e4a-bd65-06a7344d1902", Name = "Pending" },
+			new ServiceOrderItemStatus { Id = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5", Name = "Assess Cancellation" },
+			new ServiceOrderItemStatus { Id = "15d08c01-fe63-4d5f-8544-e5b4d66439f5", Name = "Pending Cancellation" },
+			new ServiceOrderItemStatus { Id = "61b80d48-d555-462e-baae-a52b17c85ddb", Name = "Cancelled" },
+		};
+
 		// defining input argument, will be converted to guid by OnArgumentsProcessed
 		private readonly GQIStringArgument domIdArg = new GQIStringArgument("DOM ID") { IsRequired = false };
 		private GQIDMS _dms;
-		private DomHelper _domHelper;
-
-		// TO BE removed when we can easily fetch this using the DOM Code Generated code (backlog of Fiber squad, Arne Maes)
-		private static List<ServiceOrderItemStatus> serviceOrderItemStatuseList = new List<ServiceOrderItemStatus>() {
-			new ServiceOrderItemStatus {Id = "06df5562-cd9b-4b0b-bd45-c58560a8b22a", Name = "New" },
-			new ServiceOrderItemStatus {Id = "d917fc53-2638-4ab9-9ac6-651ec5312bac", Name = "Acknowledged" },
-			new ServiceOrderItemStatus {Id = "331dc1c2-1950-4c00-a4ae-0aba674a30e6", Name = "In Progress" },
-			new ServiceOrderItemStatus {Id = "260a7073-e54e-4482-a8a7-2b4f2e49c42e", Name = "Completed" },
-			new ServiceOrderItemStatus {Id = "6a01a480-4c38-4db7-b545-72ba05742a7e", Name = "Rejected" },
-			new ServiceOrderItemStatus {Id = "7f13d019-29de-43cb-a510-ab2b2a77e785", Name = "Failed" },
-			new ServiceOrderItemStatus {Id = "f8a8d853-faaf-401c-9865-71e314614023", Name = "Partially Failed" },
-			new ServiceOrderItemStatus {Id = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44", Name = "Held" },
-			new ServiceOrderItemStatus {Id = "23f9fa75-32b8-4e4a-bd65-06a7344d1902", Name = "Pending" },
-			new ServiceOrderItemStatus {Id = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5", Name = "Assess Cancellation" },
-			new ServiceOrderItemStatus {Id = "15d08c01-fe63-4d5f-8544-e5b4d66439f5", Name = "Pending Cancellation" },
-			new ServiceOrderItemStatus {Id = "61b80d48-d555-462e-baae-a52b17c85ddb", Name = "Cancelled" },
-		};
 
 		// variable where input argument will be stored
 		private Guid _instanceDomId;
@@ -49,6 +53,7 @@ namespace SLC_SM_GQIDS_Get_Service_Order_Items_1
 				new GQIStringColumn("Category"),
 				new GQIStringColumn("Service Specification"),
 				new GQIStringColumn("Service"),
+				new GQIStringColumn("ServiceId"),
 				new GQIStringColumn("Property"),
 				new GQIStringColumn("Configuration"),
 				new GQIStringColumn("Status"),
@@ -87,57 +92,58 @@ namespace SLC_SM_GQIDS_Get_Service_Order_Items_1
 			return default;
 		}
 
-		private static GQIRow BuildRow(ServiceOrderItemsInstance item, Repo repo)
+		private static GQIRow BuildRow(Models.ServiceOrderItems item, Repo repo)
 		{
-			return new GQIRow(item.ID.Id.ToString(),
-				new[] {
-					new GQICell { Value = item.ID.Id.ToString() },
-					new GQICell { Value = item.ServiceOrderItemInfo.Name },
-					new GQICell { Value = item.ServiceOrderItemInfo.ServiceStartTime.HasValue ? item.ServiceOrderItemInfo.ServiceStartTime.ToString() : "No Start Time" },
-					new GQICell { Value = item.ServiceOrderItemInfo.ServiceEndTime.HasValue ? item.ServiceOrderItemInfo.ServiceEndTime.ToString() : "No End Time" },
-					new GQICell { Value = item.ServiceOrderItemInfo.Action },
+			return new GQIRow(
+				item.ServiceOrderItem.ID.ToString(),
+				new[]
+				{
+					new GQICell { Value = item.ServiceOrderItem.ID.ToString() },
+					new GQICell { Value = item.ServiceOrderItem.Name },
+					new GQICell { Value = item.ServiceOrderItem.StartTime.HasValue ? item.ServiceOrderItem.StartTime.ToString() : "No Start Time" },
+					new GQICell { Value = item.ServiceOrderItem.EndTime.HasValue ? item.ServiceOrderItem.EndTime.ToString() : "No End Time" },
+					new GQICell { Value = item.ServiceOrderItem.Action },
 					new GQICell
 					{
-						Value = item.ServiceOrderItemServiceInfo.ServiceCategory.HasValue
-							? repo.AllCategories.FirstOrDefault(x => x.ID.Id == item.ServiceOrderItemServiceInfo.ServiceCategory)?.Name ?? String.Empty
+						Value = item.ServiceOrderItem.ServiceCategoryId.HasValue
+							? repo.ServiceCategories.Read().FirstOrDefault(x => x.ID == item.ServiceOrderItem.ServiceCategoryId)?.Name ?? String.Empty
 							: String.Empty,
 					},
 					new GQICell
 					{
-						Value = item.ServiceOrderItemServiceInfo.ServiceSpecification.HasValue
-							? repo.AllSpecs.FirstOrDefault(x => x.ID.Id == item.ServiceOrderItemServiceInfo.ServiceSpecification)?.Name ?? String.Empty
+						Value = item.ServiceOrderItem.SpecificationId.HasValue
+							? repo.ServiceSpecifications.Read().FirstOrDefault(x => x.ID == item.ServiceOrderItem.SpecificationId)?.Name ?? String.Empty
 							: String.Empty,
 					},
 					new GQICell
 					{
-						Value = item.ServiceOrderItemServiceInfo.Service.HasValue
-							? repo.AllServices.FirstOrDefault(x => x.ID.Id == item.ServiceOrderItemServiceInfo.Service)?.ServiceInfo.ServiceName ?? String.Empty
+						Value = item.ServiceOrderItem.ServiceId.HasValue
+							? repo.Services.Read().FirstOrDefault(x => x.ID == item.ServiceOrderItem.ServiceId)?.Name ?? String.Empty
 							: String.Empty,
 					},
 					new GQICell
 					{
-						Value = item.ServiceOrderItemServiceInfo.Properties.HasValue
-							? repo.AllProperties.FirstOrDefault(x => x.ID.Id == item.ServiceOrderItemServiceInfo.Properties)?.ServicePropertyInfo.Name ?? String.Empty
+						Value = item.ServiceOrderItem.ServiceId?.ToString() ?? String.Empty,
+					},
+					new GQICell
+					{
+						Value = item.ServiceOrderItem.Properties != null
+							? item.ServiceOrderItem.Properties.ID.ToString()
 							: String.Empty,
 					},
 					new GQICell
 					{
-						Value = item.ServiceOrderItemServiceInfo.Configuration.HasValue
-							? repo.AllConfigurations.FirstOrDefault(x => x.ID.Id == item.ServiceOrderItemServiceInfo.Configuration)?.ID.Id.ToString()
-							: String.Empty,
+						Value = String.Empty, // Config has been replaced by multiple
 					},
 					new GQICell
 					{
-						Value = serviceOrderItemStatuseList.FirstOrDefault<ServiceOrderItemStatus>(status => status.Id == item.StatusId)?.Name.ToString() ?? "No status mapping",
+						Value = serviceOrderItemStatuseList.FirstOrDefault<ServiceOrderItemStatus>(status => status.Id == item.ServiceOrderItem.StatusId)?.Name.ToString() ?? "No status mapping",
 					},
 					new GQICell
 					{
-						Value = serviceOrderItemStatuseList.FirstOrDefault<ServiceOrderItemStatus>(status => status.Id == item.StatusId)?.Id.ToString() ?? "No status mapping",
+						Value = serviceOrderItemStatuseList.FirstOrDefault<ServiceOrderItemStatus>(status => status.Id == item.ServiceOrderItem.StatusId)?.Id.ToString() ?? "No status mapping",
 					},
-				})
-			{
-				Metadata = new GenIfRowMetadata(new[] { new ObjectRefMetadata { Object = item.ID } }),
-			};
+				});
 		}
 
 		private GQIRow[] GetMultiSection()
@@ -148,67 +154,23 @@ namespace SLC_SM_GQIDS_Get_Service_Order_Items_1
 				return Array.Empty<GQIRow>();
 			}
 
-			// will initiate DomHelper
-			LoadApplicationHandlersAndHelpers();
+			var repo = new Repo(_dms.GetConnection());
 
 			// create filter to filter event instances with specific dom event ids
-			var domInstance = _domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(_instanceDomId)).FirstOrDefault();
-			if (domInstance == null)
+			var instance = repo.ServiceOrders.Read().Find(x => x.ID == _instanceDomId);
+			if (instance == null)
 			{
 				return Array.Empty<GQIRow>();
 			}
 
-			var instance = new ServiceOrdersInstance(domInstance);
-
-			var linkedIds = instance.ServiceOrderItems
-				.Where(x => x.ServiceOrderItem.HasValue && x.ServiceOrderItem != Guid.Empty)
-				.Select(x => x.ServiceOrderItem.Value)
-				.ToArray();
-
-			if (!linkedIds.Any())
-			{
-				return Array.Empty<GQIRow>();
-			}
-
-			FilterElement<DomInstance> filter = new ORFilterElement<DomInstance>();
-			foreach (Guid linkedId in linkedIds)
-			{
-				filter = filter.OR(DomInstanceExposers.Id.Equal(linkedId));
-			}
-
-			var instances = _domHelper.DomInstances.Read(filter)
-				.Select(
-					x =>
-					{
-						try
-						{
-							return new ServiceOrderItemsInstance(x);
-						}
-						catch (Exception)
-						{
-							return null;
-						}
-					})
-				.Where(x => x != null)
-				.ToArray();
-
-			var repo = new Repo(_domHelper);
-
-			return instances.Select(item => BuildRow(item, repo)).ToArray();
+			return instance.OrderItems.Where(x => x?.ServiceOrderItem != null).Select(item => BuildRow(item, repo)).ToArray();
 		}
-
-		private void LoadApplicationHandlersAndHelpers()
-		{
-			_domHelper = new DomHelper(_dms.SendMessages, SlcServicemanagementIds.ModuleId);
-		}
-
 
 		public class ServiceOrderItemStatus
 		{
-			public string Id { get; set; } = string.Empty;
+			public string Id { get; set; } = String.Empty;
 
-			public string Name { get; set; } = string.Empty;
+			public string Name { get; set; } = String.Empty;
 		}
-
 	}
 }

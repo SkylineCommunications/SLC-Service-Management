@@ -9,6 +9,7 @@
     <Import_RootNamespace>SLC_SM_Common_Shared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)configurations.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Defaults.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)peopleorganization.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Repo.cs" />

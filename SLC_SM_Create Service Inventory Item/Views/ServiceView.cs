@@ -1,10 +1,13 @@
 ﻿namespace SLC_SM_Create_Service_Inventory_Item.Views
 {
 	using System;
-	using DomHelpers.SlcServicemanagement;
+
 	using Library;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
+
+	using SLC_SM_Common.API.ServiceManagementApi;
 
 	public class ServiceView : Dialog
 	{
@@ -47,11 +50,11 @@
 
 		public Label LblServiceCategory { get; } = new Label("Category");
 
-		public DropDown<ServiceCategoryInstance> ServiceCategory { get; } = new DropDown<ServiceCategoryInstance> { Width = Defaults.WidgetWidth };
+		public DropDown<Models.ServiceCategory> ServiceCategory { get; } = new DropDown<Models.ServiceCategory> { Width = Defaults.WidgetWidth };
 
 		public Label LblSpecification { get; } = new Label("Service Specification");
 
-		public DropDown<ServiceSpecificationsInstance> Specs { get; } = new DropDown<ServiceSpecificationsInstance> { Width = Defaults.WidgetWidth };
+		public DropDown<Models.ServiceSpecification> Specs { get; } = new DropDown<Models.ServiceSpecification> { Width = Defaults.WidgetWidth };
 
 		public Label LblStart { get; } = new Label("Start Time");
 

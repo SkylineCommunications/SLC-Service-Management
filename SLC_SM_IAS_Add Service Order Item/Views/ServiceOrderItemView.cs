@@ -6,6 +6,8 @@
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
+	using SLC_SM_Common.API.ServiceManagementApi;
+
 	public class ServiceOrderItemView : Dialog
 	{
 		public ServiceOrderItemView(IEngine engine) : base(engine)
@@ -73,17 +75,17 @@
 
 		public Label LblCategory { get; } = new Label("Category");
 
-		public DropDown<ServiceCategoryInstance> Category { get; } = new DropDown<ServiceCategoryInstance> { Width = Defaults.WidgetWidth };
+		public DropDown<Models.ServiceCategory> Category { get; } = new DropDown<Models.ServiceCategory> { Width = Defaults.WidgetWidth };
 
 		public Label LblSpecification { get; } = new Label("Service Specification");
 
-		public DropDown<ServiceSpecificationsInstance> Specification { get; } = new DropDown<ServiceSpecificationsInstance> { Width = Defaults.WidgetWidth };
+		public DropDown<Models.ServiceSpecification> Specification { get; } = new DropDown<Models.ServiceSpecification> { Width = Defaults.WidgetWidth };
 
 		public Label ErrorSpecification { get; } = new Label(String.Empty);
 
 		public Label LblService { get; } = new Label("Service Reference");
 
-		public DropDown<ServicesInstance> Service { get; } = new DropDown<ServicesInstance> { Width = Defaults.WidgetWidth, IsDisplayFilterShown = true };
+		public DropDown<Models.Service> Service { get; } = new DropDown<Models.Service> { Width = Defaults.WidgetWidth, IsDisplayFilterShown = true };
 
 		public Label ErrorService { get; } = new Label(String.Empty);
 

@@ -3,18 +3,24 @@ namespace Get_ServiceConfiguration_1
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
+	using DomHelpers.SlcConfigurations;
 	using DomHelpers.SlcServicemanagement;
+
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
+	using Guid = System.Guid;
 
 	[GQIMetaData(Name = "Get_ServiceConfiguration")]
 	public class EventManagerGetMultipleSections : IGQIDataSource, IGQIInputArguments, IGQIOnInit
 	{
 		// defining input argument, will be converted to guid by OnArgumentsProcessed
 		private readonly GQIStringArgument domIdArg = new GQIStringArgument("DOM ID") { IsRequired = true };
-		private DomHelper _domHelper;
+		private DomHelper _domHelperSrvMgmt;
+		private DomHelper _domHelperConfig;
 		private GQIDMS dms;
 
 		// variable where input argument will be stored
@@ -31,9 +37,10 @@ namespace Get_ServiceConfiguration_1
 			return new GQIColumn[]
 			{
 				new GQIStringColumn("Label"),
-				new GQIStringColumn("Service parameter ID"),
-				new GQIStringColumn("Profile parameter ID"),
-				new GQIBooleanColumn("Mandatory"),
+				new GQIBooleanColumn("Mandatory At Service Level"),
+				new GQIBooleanColumn("Expose At Service Order Level"),
+				new GQIBooleanColumn("Mandatory At Service Order Level"),
+				new GQIStringColumn("Type"),
 				new GQIStringColumn("Value"),
 			};
 		}
@@ -73,14 +80,21 @@ namespace Get_ServiceConfiguration_1
 			return default;
 		}
 
-		private DomInstance FetchDomInstance(Guid instanceDomId)
+		private static DomInstance FetchDomInstance(DomHelper helper, Guid instanceDomId)
 		{
-			var domIntanceId = new DomInstanceId(instanceDomId);
+			return helper.DomInstances.Read(DomInstanceExposers.Id.Equal(instanceDomId)).FirstOrDefault();
+		}
 
+		private static List<DomInstance> FetchDomInstances(DomHelper helper, List<Guid> instanceDomIds)
+		{
 			// create filter to filter event instances with specific dom event ids
-			var filter = DomInstanceExposers.Id.Equal(domIntanceId);
+			FilterElement<DomInstance> filter = new ORFilterElement<DomInstance>();
+			foreach (Guid guid in instanceDomIds)
+			{
+				filter = filter.OR(DomInstanceExposers.Id.Equal(guid));
+			}
 
-			return _domHelper.DomInstances.Read(filter).FirstOrDefault();
+			return helper.DomInstances.Read(filter);
 		}
 
 		private GQIRow[] GetMultiSection()
@@ -93,78 +107,86 @@ namespace Get_ServiceConfiguration_1
 			// will initiate DomHelper
 			LoadApplicationHandlersAndHelpers();
 
-			var domInstance = FetchDomInstance(instanceDomId);
+			var domInstance = FetchDomInstance(_domHelperSrvMgmt, instanceDomId);
 			if (domInstance == null)
 			{
 				return Array.Empty<GQIRow>();
 			}
 
-			Guid serviceConfigurationGuid = Guid.Empty;
+			IList<Guid> serviceConfigurationGuids = new List<Guid>();
 
 			if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.Services.Id)
 			{
 				var instance = new ServicesInstance(domInstance);
-				serviceConfigurationGuid = instance.ServiceInfo.ServiceConfiguration ?? Guid.Empty;
+				serviceConfigurationGuids = instance.ServiceInfo.ServiceConfigurationParameters;
 			}
 			else if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.ServiceSpecifications.Id)
 			{
 				var instance = new ServiceSpecificationsInstance(domInstance);
-				serviceConfigurationGuid = instance.ServiceSpecificationInfo.ServiceConfiguration ?? Guid.Empty;
+				serviceConfigurationGuids = instance.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters;
 			}
 			else if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.ServiceOrderItems.Id)
 			{
 				var instance = new ServiceOrderItemsInstance(domInstance);
-				serviceConfigurationGuid = instance.ServiceOrderItemServiceInfo.Configuration ?? Guid.Empty;
+				serviceConfigurationGuids = instance.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations;
 			}
 			else
 			{
 				// For future options
 			}
 
-			if (serviceConfigurationGuid == Guid.Empty)
+			if (serviceConfigurationGuids == null || !serviceConfigurationGuids.Any())
 			{
 				return Array.Empty<GQIRow>();
 			}
 
-			var configDomInstance = FetchDomInstance(serviceConfigurationGuid);
-			if (configDomInstance == null)
+			var configDomInstances = FetchDomInstances(_domHelperSrvMgmt, serviceConfigurationGuids.ToList());
+			if (configDomInstances == null)
 			{
 				return Array.Empty<GQIRow>();
 			}
-
-			var configInstance = new ServiceConfigurationInstance(configDomInstance);
-
-			var configValues = configInstance.ServiceConfigurationParametersValues;
 
 			var rows = new List<GQIRow>();
-			configValues.ForEach(
-				item =>
+
+			foreach (DomInstance instance in configDomInstances)
+			{
+				var configValueInstance = new ServiceSpecificationConfigurationValueInstance(instance);
+
+				var configValue = configValueInstance.ServiceSpecificationConfigurationValue.ConfigurationParameterValue;
+				if (configValue == default)
 				{
-					rows.Add(
-						new GQIRow(
-							new[]
-							{
-								new GQICell { Value = item.Label ?? String.Empty },
-								new GQICell { Value = item.ServiceParameterID ?? String.Empty },
-								new GQICell { Value = item.ProfileParameterID ?? String.Empty },
-								new GQICell { Value = (bool)(item.Mandatory ?? false) },
-								new GQICell
-								{
-									Value = !String.IsNullOrWhiteSpace(item.StringValue)
-										? item.StringValue
-										: item.DoubleValue.HasValue
-											? Convert.ToString(item.DoubleValue.Value)
-											: String.Empty,
-								},
-							}));
-				});
+					continue;
+				}
+
+				var item = new ConfigurationParameterValueInstance(FetchDomInstance(_domHelperConfig, configValue.Value));
+
+				rows.Add(
+				new GQIRow(
+					new[]
+					{
+						new GQICell { Value = item.ConfigurationParameterValue.Label ?? String.Empty },
+						new GQICell { Value = configValueInstance.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel ?? false },
+						new GQICell { Value = configValueInstance.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel ?? false },
+						new GQICell { Value = configValueInstance.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel ?? false },
+						new GQICell { Value = item.ConfigurationParameterValue.Type.HasValue ? item.ConfigurationParameterValue.Type.Value.ToString() : SlcConfigurationsIds.Enums.Type.Text.ToString() },
+						new GQICell
+						{
+							Value = !String.IsNullOrWhiteSpace(item.ConfigurationParameterValue.StringValue)
+								? item.ConfigurationParameterValue.StringValue
+								: item.ConfigurationParameterValue.DoubleValue.HasValue
+									? Convert.ToString(item.ConfigurationParameterValue.DoubleValue.Value)
+									: String.Empty,
+						},
+					}));
+			}
 
 			return rows.ToArray();
 		}
 
 		private void LoadApplicationHandlersAndHelpers()
 		{
-			_domHelper = new DomHelper(dms.SendMessages, SlcServicemanagementIds.ModuleId);
+			_domHelperSrvMgmt = new DomHelper(dms.SendMessages, SlcServicemanagementIds.ModuleId);
+			_domHelperConfig = new DomHelper(dms.SendMessages, SlcConfigurationsIds.ModuleId);
 		}
 	}
 }
