@@ -10,8 +10,6 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
-	using SLDataGateway.API.Querying;
-
 	public class DataHelperServiceOrderItem : DataHelper<Models.ServiceOrderItem>
 	{
 		public DataHelperServiceOrderItem(IConnection connection) : base(connection, SlcServicemanagementIds.Definitions.ServiceOrderItems)
@@ -24,8 +22,8 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 				.Select(x => new ServiceOrderItemsInstance(x))
 				.ToList();
 
-			var helperPropertyValues = new DataHelperServicePropertyValues(_connection);
-			var helperConfigurations = new DataHelperServiceOrderItemConfigurationValue(_connection);
+			var helperPropertyValues = new DataHelperServicePropertyValues(_connection).Read();
+			var helperConfigurations = new DataHelperServiceOrderItemConfigurationValue(_connection).Read();
 			return instances.Select(
 					x => new Models.ServiceOrderItem
 					{
@@ -38,8 +36,8 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 						IndefiniteRuntime = x.ServiceOrderItemInfo.ServiceIndefiniteRuntime,
 						SpecificationId = x.ServiceOrderItemServiceInfo.ServiceSpecification,
 						ServiceCategoryId = x.ServiceOrderItemServiceInfo.ServiceCategory,
-						Properties = helperPropertyValues.Read().Find(p => p.ID == x.ServiceOrderItemServiceInfo.Properties),
-						Configurations = helperConfigurations.Read().Where(c => x.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations.Contains(c.ID)).ToList(),
+						Properties = helperPropertyValues.Find(p => p.ID == x.ServiceOrderItemServiceInfo.Properties),
+						Configurations = helperConfigurations.Where(c => x.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations.Contains(c.ID)).ToList(),
 						ServiceId = x.ServiceOrderItemServiceInfo.Service,
 					})
 				.ToList();
@@ -74,10 +72,9 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 			var dataHelperConfigurations = new DataHelperServiceOrderItemConfigurationValue(_connection);
 			instance.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations.Clear();
-			foreach (var configurationValue in item.Configurations)
+			foreach (var configurationValue in item.Configurations.Where(c => c?.ConfigurationParameter != null))
 			{
-				var id = dataHelperConfigurations.CreateOrUpdate(configurationValue);
-				instance.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations.Add(id);
+				instance.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations.Add(dataHelperConfigurations.CreateOrUpdate(configurationValue));
 			}
 
 			return CreateOrUpdateInstance(instance);

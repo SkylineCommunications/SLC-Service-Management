@@ -73,7 +73,7 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 			if (item.ServiceItemsRelationships != null)
 			{
-				foreach (var relationship in item.ServiceItemsRelationships)
+				foreach (var relationship in item.ServiceItemsRelationships.Where(r => r != null))
 				{
 					instance.ServiceItemRelationship.Add(
 						new ServiceItemRelationshipSection
@@ -93,23 +93,34 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 			}
 
 			var dataHelperConfigurations = new DataHelperServiceSpecificationConfigurationValue(_connection);
-			foreach (var config in item.Configurations)
+			if (item.Configurations != null)
 			{
-				instance.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters.Add(config.ID);
-				dataHelperConfigurations.CreateOrUpdate(config);
+				foreach (var config in item.Configurations.Where(c => c?.ConfigurationParameter != null))
+				{
+					instance.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters.Add(dataHelperConfigurations.CreateOrUpdate(config));
+				}
 			}
 
-			foreach (var si in item.ServiceItems)
+			if (item.ServiceItems != null)
 			{
-				instance.ServiceItems.Add(new ServiceItemsSection
+				foreach (var si in item.ServiceItems.Where(s => s != null))
 				{
-					ServiceItemID = si.ID,
-					Label = si.Label,
-					ServiceItemScript = si.Script,
-					ServiceItemType = si.Type,
-					DefinitionReference = si.DefinitionReference,
-					ImplementationReference = si.ImplementationReference,
-				});
+					instance.ServiceItems.Add(
+						new ServiceItemsSection
+						{
+							ServiceItemID = si.ID,
+							Label = si.Label,
+							ServiceItemScript = si.Script,
+							ServiceItemType = si.Type,
+							DefinitionReference = si.DefinitionReference,
+							ImplementationReference = si.ImplementationReference,
+						});
+				}
+			}
+
+			if (!instance.ServiceItems.Any())
+			{
+				instance.ServiceItems.Add(new ServiceItemsSection());
 			}
 
 			return CreateOrUpdateInstance(instance);
@@ -117,10 +128,20 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 		public override bool TryDelete(Models.ServiceSpecification item)
 		{
-			bool b = TryDelete(item.Properties.ID);
-			foreach (var config in item.Configurations)
+			bool b = true;
+
+			if (item.Properties != null)
 			{
-				b &= TryDelete(config.ID);
+				b &= new DataHelperServicePropertyValues(_connection).TryDelete(item.Properties);
+			}
+
+			if (item.Configurations != null)
+			{
+				var helperConfigs = new DataHelperServiceSpecificationConfigurationValue(_connection);
+				foreach (var config in item.Configurations)
+				{
+					b &= helperConfigs.TryDelete(config.ID);
+				}
 			}
 
 			return b && TryDelete(item.ID);

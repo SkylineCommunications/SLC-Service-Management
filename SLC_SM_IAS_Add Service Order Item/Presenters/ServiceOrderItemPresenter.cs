@@ -99,8 +99,8 @@
 			serviceOptions.Insert(0, new Option<Models.Service>("-None-", null));
 			view.Service.SetOptions(serviceOptions);
 
-			view.Start.DateTime = DateTime.Now + TimeSpan.FromDays(1);
-			view.End.DateTime = DateTime.Now + TimeSpan.FromDays(8);
+			view.Start.DateTime = DateTime.Now + TimeSpan.FromHours(1);
+			view.End.DateTime = DateTime.Now + TimeSpan.FromDays(7);
 			view.IndefiniteTime.IsChecked = false;
 
 			UpdateUiOnActionTypeChange(view.ActionType.Selected);

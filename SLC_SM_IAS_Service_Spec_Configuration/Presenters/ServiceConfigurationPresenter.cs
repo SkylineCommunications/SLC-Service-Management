@@ -34,6 +34,16 @@
 			this.instance = instance;
 
 			view.BtnCancel.Pressed += (sender, args) => throw new ScriptAbortException("OK");
+			view.BtnShowValueDetails.Pressed += (sender, args) =>
+			{
+				view.BtnShowValueDetails.Text = view.Details.IsVisible ? view.BtnShowValueDetails.Text.Replace("Hide", "Show") : view.BtnShowValueDetails.Text.Replace("Show", "Hide");
+				view.Details.IsVisible = !view.Details.IsVisible;
+			};
+			view.BtnShowLifeCycleDetails.Pressed += (sender, args) =>
+			{
+				view.BtnShowLifeCycleDetails.Text = view.LifeCycleDetails.IsVisible ? view.BtnShowLifeCycleDetails.Text.Replace("Hide", "Show") : view.BtnShowLifeCycleDetails.Text.Replace("Show", "Hide");
+				view.LifeCycleDetails.IsVisible = !view.LifeCycleDetails.IsVisible;
+			};
 			view.BtnUpdate.Pressed += (sender, args) =>
 			{
 				StoreModels();
@@ -69,7 +79,7 @@
 				}
 			}
 
-			BuildUI();
+			BuildUI(false, false);
 		}
 
 		public void StoreModels()
@@ -79,11 +89,6 @@
 				if (configuration.State == State.Delete)
 				{
 					repoService.ServiceSpecificationConfigurationValues.TryDelete(configuration.ServiceConfig);
-				}
-				else
-				{
-					repoService.ServiceSpecificationConfigurationValues.CreateOrUpdate(configuration.ServiceConfig);
-					repoConfig.ConfigurationParameterValues.CreateOrUpdate(configuration.ConfigurationParamValue);
 				}
 			}
 
@@ -163,30 +168,44 @@
 			view.AddWidget(lblLink, row, 2);
 			view.AddWidget(lblValue, row, 3);
 			view.AddWidget(lblUnit, row, 4);
-			view.AddWidget(lblStart, row, 5);
-			view.AddWidget(lblEnd, row, 6);
-			view.AddWidget(lblStop, row, 7);
-			view.AddWidget(lblDecimals, row, 8);
-			view.AddWidget(lblValues, row, 9);
-			view.AddWidget(lblDefault, row, 10);
-			view.AddWidget(lblExposeAtOrder, row, 11);
-			view.AddWidget(lblMandatoryAtOrder, row, 12);
-			view.AddWidget(lblMandatoryAtService, row, 13);
+
+			view.Details.AddWidget(lblStart, 0, 0);
+			view.Details.AddWidget(lblEnd, 0, 1);
+			view.Details.AddWidget(lblStop, 0, 2);
+			view.Details.AddWidget(lblDecimals, 0, 3);
+			view.Details.AddWidget(lblValues, 0, 4);
+			view.LifeCycleDetails.AddWidget(lblDefault, 0, 0);
+			view.LifeCycleDetails.AddWidget(lblExposeAtOrder, 0, 1);
+			view.LifeCycleDetails.AddWidget(lblMandatoryAtOrder, 0, 2);
+			view.LifeCycleDetails.AddWidget(lblMandatoryAtService, 0, 3);
 		}
 
-		private void BuildUI()
+		private void BuildUI(bool showDetails, bool showLifeCycleDetails)
 		{
 			view.Clear();
+			view.Details.Clear();
+			view.LifeCycleDetails.Clear();
 
 			int row = 0;
 			view.AddWidget(view.TitleDetails, row, 0, 1, 2);
+			view.AddWidget(new WhiteSpace(), ++row, 0);
+			view.AddWidget(view.BtnShowValueDetails, ++row, 0);
+			view.AddWidget(view.BtnShowLifeCycleDetails, row, 1);
+			view.AddWidget(new WhiteSpace(), ++row, 0);
 
 			BuildHeaderRow(++row);
 
+			int originalSectionRow = row;
+			int sectionRow = 0;
 			foreach (var configuration in configurations.Where(x => x.State != State.Delete))
 			{
-				BuildUIRow(configuration, ++row);
+				BuildUIRow(configuration, ++row, ++sectionRow);
 			}
+
+			view.AddSection(view.Details, originalSectionRow, 5);
+			view.AddSection(view.LifeCycleDetails, originalSectionRow, 10);
+			view.Details.IsVisible = showDetails;
+			view.LifeCycleDetails.IsVisible = showLifeCycleDetails;
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
 			var parameterOptions = repoConfig.ConfigurationParameters.Read().Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(x.Name, x)).OrderBy(x => x.DisplayValue).ToList();
@@ -201,7 +220,7 @@
 				}
 
 				AddConfigModel(args.Selected);
-				BuildUI();
+				BuildUI(view.Details.IsVisible, view.LifeCycleDetails.IsVisible);
 			};
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
@@ -209,19 +228,18 @@
 			view.AddWidget(view.BtnUpdate, row, 1);
 		}
 
-		private void BuildUIRow(DataRecord record, int row)
+		private void BuildUIRow(DataRecord record, int row, int sectionRow)
 		{
 			// Init
-			var label = new TextBox(record.ConfigurationParamValue.Label) { MaxWidth = 150 };
+			var label = new TextBox(record.ConfigurationParamValue.Label);
 			var parameter = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(
 				new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(record.ConfigurationParam.Name, record.ConfigurationParam) })
 			{
 				IsEnabled = false,
-				MaxWidth = 200,
 			};
 			var isFixed = new CheckBox { IsChecked = record.ConfigurationParamValue.ValueFixed };
 			var link = new CheckBox { IsChecked = record.ConfigurationParamValue.LinkedConfigurationReference != null };
-			var unit = new Label("-");
+			var unit = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>("-", null) }) { IsEnabled = false, MaxWidth = 80 };
 			var start = new Numeric { IsEnabled = false, MaxWidth = 100 };
 			var end = new Numeric { IsEnabled = false, MaxWidth = 100 };
 			var step = new Numeric { IsEnabled = false, Minimum = 0, Maximum = 1, MaxWidth = 100 };
@@ -241,18 +259,17 @@
 			{
 				record.State = State.Delete;
 				instance.Configurations.Remove(record.ServiceConfig);
-				BuildUI();
+				BuildUI(view.Details.IsVisible, view.LifeCycleDetails.IsVisible);
 			};
 			link.Changed += (sender, args) =>
 			{
 				record.ConfigurationParamValue.LinkedConfigurationReference = args.IsChecked ? "Dummy Link" : null;
-				BuildUI();
+				BuildUI(view.Details.IsVisible, view.LifeCycleDetails.IsVisible);
 			};
 
 			if (record.ConfigurationParamValue.LinkedConfigurationReference != null)
 			{
 				view.AddWidget(new DropDown(), row, 3);
-				view.AddWidget(new WhiteSpace(), row, 10);
 			}
 			else
 			{
@@ -270,9 +287,10 @@
 								Maximum = maximum,
 								StepSize = stepSize,
 								Decimals = decimalVal,
-								MaxWidth = 150,
 							};
-							unit.Text = GetDefaultUnit(record.ConfigurationParamValue.NumberOptions, parameter.Selected);
+							unit.SetOptions(GetUnits(record.ConfigurationParamValue.NumberOptions, parameter.Selected));
+							unit.Selected = GetDefaultUnit(record.ConfigurationParamValue.NumberOptions, parameter.Selected);
+							unit.IsEnabled = true;
 							start.Value = minimum;
 							start.IsEnabled = true;
 							end.Value = maximum;
@@ -310,6 +328,7 @@
 								value.StepSize = args.Value;
 								record.ConfigurationParamValue.NumberOptions.StepSize = args.Value;
 							};
+							unit.Changed += (sender, args) => record.ConfigurationParamValue.NumberOptions.DefaultUnit = args.Selected;
 							value.Changed += (sender, args) => { record.ConfigurationParamValue.DoubleValue = args.Value; };
 							view.AddWidget(value, row, 3);
 						}
@@ -323,7 +342,7 @@
 								.OrderBy(x => x.DisplayValue)
 								.ToList();
 
-							var value = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(discretes) { MaxWidth = 150 };
+							var value = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(discretes);
 							if (record.ConfigurationParamValue.StringValue != null
 								&& value.Options.Any(x => x.DisplayValue == record.ConfigurationParamValue.StringValue))
 							{
@@ -355,7 +374,6 @@
 							var value = new TextBox(record.ConfigurationParamValue.StringValue ?? record.ConfigurationParamValue.TextOptions?.Default ?? String.Empty)
 							{
 								Tooltip = record.ConfigurationParamValue.TextOptions?.UserMessage ?? String.Empty,
-								MaxWidth = 150,
 							};
 							value.Changed += (sender, args) =>
 							{
@@ -383,31 +401,51 @@
 			view.AddWidget(parameter, row, 1);
 			view.AddWidget(link, row, 2);
 			view.AddWidget(unit, row, 4);
-			view.AddWidget(start, row, 5);
-			view.AddWidget(end, row, 6);
-			view.AddWidget(step, row, 7);
-			view.AddWidget(decimals, row, 8);
-			view.AddWidget(values, row, 9);
-			view.AddWidget(isFixed, row, 10);
-			view.AddWidget(exposeAtOrder, row, 11);
-			view.AddWidget(mandatoryAtOrder, row, 12);
-			view.AddWidget(mandatoryAtService, row, 13);
+
+			view.Details.AddWidget(start, sectionRow, 0);
+			view.Details.AddWidget(end, sectionRow, 1);
+			view.Details.AddWidget(step, sectionRow, 2);
+			view.Details.AddWidget(decimals, sectionRow,3);
+			view.Details.AddWidget(values, sectionRow, 4);
+			view.LifeCycleDetails.AddWidget(isFixed, sectionRow, 0);
+			view.LifeCycleDetails.AddWidget(exposeAtOrder, sectionRow, 1);
+			view.LifeCycleDetails.AddWidget(mandatoryAtOrder, sectionRow, 2);
+			view.LifeCycleDetails.AddWidget(mandatoryAtService, sectionRow, 3);
+
 			view.AddWidget(delete, row, 14);
 		}
 
-		private string GetDefaultUnit(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)
+		private List<Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>> GetUnits(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)
 		{
+			var units = new List<Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>>();
 			if (numberValueOptions?.DefaultUnit != null)
 			{
-				return numberValueOptions.DefaultUnit.Name;
+				units.AddRange(numberValueOptions.Units.Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(x.Name, x)));
 			}
-
-			if (parameter.NumberOptions?.DefaultUnit != null)
+			else if (parameter.NumberOptions?.DefaultUnit != null)
 			{
-				return parameter.NumberOptions.DefaultUnit.Name;
+				units.AddRange(parameter.NumberOptions.Units.Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(x.Name, x)));
 			}
 
-			return "-";
+			units = units.OrderBy(x => x.DisplayValue).ToList();
+
+			units.Insert(0, new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>("-", null));
+			return units;
+		}
+
+		private SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit GetDefaultUnit(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)
+		{
+			if (numberValueOptions != null)
+			{
+				return numberValueOptions.DefaultUnit;
+			}
+
+			if (parameter.NumberOptions != null)
+			{
+				return parameter.NumberOptions.DefaultUnit;
+			}
+
+			return null;
 		}
 
 		private sealed class DataRecord

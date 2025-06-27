@@ -179,6 +179,8 @@ namespace SLC_SM_Common.API
 
 				public ServiceCategory Category { get; set; }
 
+				public Guid? OrganizationId { get; set; }
+
 				public Guid? ServiceSpecificationId { get; set; }
 
 				public ServicePropertyValues Properties { get; set; }

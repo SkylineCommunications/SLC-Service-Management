@@ -28,6 +28,9 @@
 			AddWidget(LblSpecification, ++row, 0);
 			AddWidget(Specs, row, 1);
 
+			AddWidget(LblOrganization, ++row, 0);
+			AddWidget(Organizations, row, 1);
+
 			AddWidget(LblStart, ++row, 0);
 			AddWidget(Start, row, 1);
 			AddWidget(ErrorStart, row, 2);
@@ -55,6 +58,10 @@
 		public Label LblSpecification { get; } = new Label("Service Specification");
 
 		public DropDown<Models.ServiceSpecification> Specs { get; } = new DropDown<Models.ServiceSpecification> { Width = Defaults.WidgetWidth };
+
+		public Label LblOrganization { get; } = new Label("Organization");
+
+		public DropDown<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> Organizations { get; } = new DropDown<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> { Width = Defaults.WidgetWidth };
 
 		public Label LblStart { get; } = new Label("Start Time");
 

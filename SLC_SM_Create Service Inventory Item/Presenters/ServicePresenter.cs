@@ -1,24 +1,29 @@
 ﻿namespace SLC_SM_Create_Service_Inventory_Item.Presenters
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 
 	using Library;
 
+	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using SLC_SM_Common.API.PeopleAndOrganizationApi;
 
 	using SLC_SM_Create_Service_Inventory_Item.Views;
+
+	using Models = SLC_SM_Common.API.ServiceManagementApi.Models;
 
 	public class ServicePresenter
 	{
 		private readonly Repo repo;
 		private readonly ServiceView view;
-		private readonly string[] getServiceLabels;
+		private readonly List<string> getServiceLabels;
 		private Models.Service instanceToReturn;
+		private bool isEdit = false;
 
-		public ServicePresenter(Repo repo, ServiceView view, string[] getServiceLabels)
+		public ServicePresenter(Repo repo, ServiceView view, List<string> getServiceLabels)
 		{
 			this.repo = repo;
 			this.view = view;
@@ -26,8 +31,10 @@
 			instanceToReturn = new Models.Service
 			{
 				ID = Guid.NewGuid(),
-				Name = $"Service Inventory Item #{getServiceLabels.Length:000}",
-				Description = $"Service Inventory Item #{getServiceLabels.Length:000}",
+				Name = $"Service #{getServiceLabels.Count:000}",
+				Description = $"Service #{getServiceLabels.Count:000}",
+				ServiceItems = new List<Models.ServiceItem>(),
+				ServiceItemsRelationships = new List<Models.ServiceItemRelationShip>(),
 			};
 			view.TboxName.PlaceHolder = instanceToReturn.Name;
 
@@ -49,6 +56,7 @@
 				instanceToReturn.Description = instanceToReturn.Description ?? String.Empty;
 				instanceToReturn.Category = view.ServiceCategory.Selected;
 				instanceToReturn.ServiceSpecificationId = view.Specs.Selected?.ID;
+				instanceToReturn.OrganizationId = view.Organizations.Selected?.ID;
 
 				return instanceToReturn;
 			}
@@ -63,13 +71,19 @@
 			specs.Insert(0, new Option<Models.ServiceSpecification>("-None-", null));
 			view.Specs.SetOptions(specs);
 
+			var orgs = new DataHelperOrganization(Engine.SLNetRaw).Read().OrderBy(x => x.Name).Select(x => new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>(x.Name, x)).ToList();
+			orgs.Insert(0, new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>("-None-", null));
+			view.Organizations.SetOptions(orgs);
+
 			view.Start.DateTime = DateTime.Now + TimeSpan.FromHours(1);
-			view.End.DateTime = view.Start.DateTime + TimeSpan.FromDays(7);
+			view.End.DateTime = view.Start.DateTime + TimeSpan.FromHours(1);
 		}
 
 		public void LoadFromModel(Models.Service instance)
 		{
 			instanceToReturn = instance;
+			getServiceLabels.Remove(instance.Name);
+			isEdit = true;
 
 			// Load correct types
 			LoadFromModel();
@@ -102,6 +116,11 @@
 				view.Specs.SelectedOption = view.Specs.Options.First(x => x.Value?.ID == instance.ServiceSpecificationId);
 				view.Specs.IsEnabled = false;
 			}
+
+			if (instance.OrganizationId.HasValue && view.Organizations.Options.Any(o => o.Value?.ID == instance.OrganizationId))
+			{
+				view.Organizations.SelectedOption = view.Organizations.Options.First(x => x.Value?.ID == instance.OrganizationId);
+			}
 		}
 
 		public bool Validate()
@@ -110,7 +129,7 @@
 
 			ok &= ValidateLabel(view.TboxName.Text);
 
-			if (view.Start.DateTime < DateTime.Now)
+			if (!isEdit && view.Start.DateTime < DateTime.Now)
 			{
 				ok = false;
 				view.ErrorStart.Text = "Please make a selection which doesn't lie in the past.";

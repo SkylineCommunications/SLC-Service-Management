@@ -10,7 +10,7 @@ namespace SLC_SM_Common.API
 			{
 				public Guid ID { get; set; }
 
-				public Guid CategoryId { get; set; }
+				public Guid? CategoryId { get; set; }
 
 				public string Name { get; set; }
 			}

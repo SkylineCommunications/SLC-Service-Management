@@ -27,7 +27,7 @@ namespace SLC_SM_Common.API.PeopleAndOrganizationApi
 					{
 						ID = x.ID.Id,
 						Name = x.OrganizationInformation.OrganizationName,
-						CategoryId = x.OrganizationInformation.Category.Value,
+						CategoryId = x.OrganizationInformation.Category,
 					})
 				.ToList();
 		}

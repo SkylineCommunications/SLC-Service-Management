@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
-	<Name>SLC_SM_Delete Service Order Item</Name>
-	<Description />
+	<Name>SLC_SM_Delete Service Specification</Name>
+	<Description></Description>
 	<Type>Automation</Type>
-	<Author>SKYLINE2\RobinME</Author>
+	<Author>RME</Author>
 	<CheckSets>FALSE</CheckSets>
 	<Folder>Service Management</Folder>
 
@@ -17,18 +17,13 @@
 		<ScriptParameter id="10" type="string" values="">
 			<Description>DOM ID</Description>
 		</ScriptParameter>
-		<ScriptParameter id="11" type="string" values="">
-			<Description>Service Order Item ID</Description>
-		</ScriptParameter>
 	</Parameters>
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value>
-				<![CDATA[[Project:SLC_SM_Delete Service Order Item]]]>
-			</Value>
+			<Value><![CDATA[[Project:SLC_SM_Delete Service Specification]]]></Value>
 			<!--<Param type="debug">true</Param>-->
-			<Message />
+			<Message></Message>
 		</Exe>
 	</Script>
 </DMSScript>

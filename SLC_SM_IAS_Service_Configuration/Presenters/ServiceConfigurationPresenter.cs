@@ -3,7 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Runtime.InteropServices.WindowsRuntime;
+	using System.Runtime.CompilerServices;
 	using System.Text.RegularExpressions;
 
 	using DomHelpers.SlcConfigurations;
@@ -35,6 +35,11 @@
 			this.instance = instance;
 
 			view.BtnCancel.Pressed += (sender, args) => throw new ScriptAbortException("OK");
+			view.BtnShowValueDetails.Pressed += (sender, args) =>
+			{
+				view.BtnShowValueDetails.Text = view.Details.IsVisible ? view.BtnShowValueDetails.Text.Replace("Hide", "Show") : view.BtnShowValueDetails.Text.Replace("Show", "Hide");
+				view.Details.IsVisible = !view.Details.IsVisible;
+			};
 			view.BtnUpdate.Pressed += (sender, args) =>
 			{
 				StoreModels();
@@ -70,7 +75,7 @@
 				}
 			}
 
-			BuildUI();
+			BuildUI(false);
 		}
 
 		public void StoreModels()
@@ -80,11 +85,6 @@
 				if (configuration.State == State.Delete)
 				{
 					repoService.ServiceConfigurationValues.TryDelete(configuration.ServiceConfig);
-				}
-				else
-				{
-					repoService.ServiceConfigurationValues.CreateOrUpdate(configuration.ServiceConfig);
-					repoConfig.ConfigurationParameterValues.CreateOrUpdate(configuration.ConfigurationParamValue);
 				}
 			}
 
@@ -152,34 +152,41 @@
 			var lblStop = new Label("Step Size");
 			var lblDecimals = new Label("Decimals");
 			var lblValues = new Label("Values");
-			var lblMandatoryAtService = new Label("Mandatory");
 
 			view.AddWidget(lblLabel, row, 0);
 			view.AddWidget(lblParameter, row, 1);
 			view.AddWidget(lblLink, row, 2);
 			view.AddWidget(lblValue, row, 3);
 			view.AddWidget(lblUnit, row, 4);
-			view.AddWidget(lblStart, row, 5);
-			view.AddWidget(lblEnd, row, 6);
-			view.AddWidget(lblStop, row, 7);
-			view.AddWidget(lblDecimals, row, 8);
-			view.AddWidget(lblValues, row, 9);
-			view.AddWidget(lblMandatoryAtService, row, 10);
+
+			view.Details.AddWidget(lblStart, 0, 0);
+			view.Details.AddWidget(lblEnd, 0, 1);
+			view.Details.AddWidget(lblStop, 0, 2);
+			view.Details.AddWidget(lblDecimals, 0, 3);
+			view.Details.AddWidget(lblValues, 0, 4);
 		}
 
-		private void BuildUI()
+		private void BuildUI(bool showDetails)
 		{
 			view.Clear();
 
 			int row = 0;
 			view.AddWidget(view.TitleDetails, row, 0, 1, 2);
+			view.AddWidget(new WhiteSpace(), ++row, 0);
+			view.AddWidget(view.BtnShowValueDetails, ++row, 0);
+			view.AddWidget(new WhiteSpace(), ++row, 0);
 
 			BuildHeaderRow(++row);
 
+			int originalSectionRow = row;
+			int sectionRow = 0;
 			foreach (var configuration in configurations.Where(x => x.State != State.Delete))
 			{
-				BuildUIRow(configuration, ++row);
+				BuildUIRow(configuration, ++row, ++sectionRow);
 			}
+
+			view.AddSection(view.Details, originalSectionRow, 5);
+			view.Details.IsVisible = showDetails;
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
 			var parameterOptions = repoConfig.ConfigurationParameters.Read().Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(x.Name, x)).OrderBy(x => x.DisplayValue).ToList();
@@ -194,7 +201,7 @@
 				}
 
 				AddConfigModel(args.Selected);
-				BuildUI();
+				BuildUI(view.Details.IsVisible);
 			};
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
@@ -202,15 +209,14 @@
 			view.AddWidget(view.BtnUpdate, row, 1);
 		}
 
-		private void BuildUIRow(DataRecord record, int row)
+		private void BuildUIRow(DataRecord record, int row, int sectionRow)
 		{
 			// Init
-			var label = new TextBox(record.ConfigurationParamValue.Label) { MaxWidth = 150 };
+			var label = new TextBox(record.ConfigurationParamValue.Label);
 			var parameter = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(
 				new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(record.ConfigurationParam.Name, record.ConfigurationParam) })
 			{
 				IsEnabled = false,
-				MaxWidth = 200,
 			};
 			var link = new CheckBox { IsChecked = record.ConfigurationParamValue.LinkedConfigurationReference != null };
 			var unit = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>("-", null) }) { IsEnabled = false, MaxWidth = 80 };
@@ -219,7 +225,6 @@
 			var step = new Numeric { IsEnabled = false, Minimum = 0, Maximum = 1, MaxWidth = 100 };
 			var decimals = new Numeric { StepSize = 1, Minimum = 0, Maximum = 6, IsEnabled = false, MaxWidth = 80 };
 			var values = new Button("...") { IsEnabled = false };
-			var mandatoryAtService = new CheckBox { IsChecked = record.ServiceConfig.Mandatory, IsEnabled = false };
 			var delete = new Button("🚫") { IsEnabled = !record.ServiceConfig.Mandatory };
 
 			label.Changed += (sender, args) => record.ConfigurationParamValue.Label = args.Value;
@@ -227,18 +232,17 @@
 			{
 				record.State = State.Delete;
 				instance.Configurations.Remove(record.ServiceConfig);
-				BuildUI();
+				BuildUI(view.Details.IsVisible);
 			};
 			link.Changed += (sender, args) =>
 			{
 				record.ConfigurationParamValue.LinkedConfigurationReference = args.IsChecked ? "Dummy Link" : null;
-				BuildUI();
+				BuildUI(view.Details.IsVisible);
 			};
 
 			if (record.ConfigurationParamValue.LinkedConfigurationReference != null)
 			{
 				view.AddWidget(new DropDown(), row, 3);
-				view.AddWidget(new WhiteSpace(), row, 10);
 			}
 			else
 			{
@@ -256,7 +260,6 @@
 								Maximum = maximum,
 								StepSize = stepSize,
 								Decimals = decimalVal,
-								MaxWidth = 150,
 							};
 							unit.SetOptions(GetUnits(record.ConfigurationParamValue.NumberOptions, parameter.Selected));
 							unit.Selected = GetDefaultUnit(record.ConfigurationParamValue.NumberOptions, parameter.Selected);
@@ -312,7 +315,7 @@
 								.OrderBy(x => x.DisplayValue)
 								.ToList();
 
-							var value = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(discretes) { MaxWidth = 150 };
+							var value = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(discretes);
 							if (record.ConfigurationParamValue.StringValue != null
 								&& value.Options.Any(x => x.DisplayValue == record.ConfigurationParamValue.StringValue))
 							{
@@ -344,7 +347,6 @@
 							var value = new TextBox(record.ConfigurationParamValue.StringValue ?? record.ConfigurationParamValue.TextOptions?.Default ?? String.Empty)
 							{
 								Tooltip = record.ConfigurationParamValue.TextOptions?.UserMessage ?? String.Empty,
-								MaxWidth = 150,
 							};
 							value.Changed += (sender, args) =>
 							{
@@ -372,13 +374,14 @@
 			view.AddWidget(parameter, row, 1);
 			view.AddWidget(link, row, 2);
 			view.AddWidget(unit, row, 4);
-			view.AddWidget(start, row, 5);
-			view.AddWidget(end, row, 6);
-			view.AddWidget(step, row, 7);
-			view.AddWidget(decimals, row, 8);
-			view.AddWidget(values, row, 9);
-			view.AddWidget(mandatoryAtService, row, 10);
-			view.AddWidget(delete, row, 11);
+
+			view.Details.AddWidget(start, sectionRow, 0);
+			view.Details.AddWidget(end, sectionRow, 1);
+			view.Details.AddWidget(step, sectionRow, 2);
+			view.Details.AddWidget(decimals, sectionRow,3);
+			view.Details.AddWidget(values, sectionRow, 4);
+
+			view.AddWidget(delete, row, 10);
 		}
 
 		private List<Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>> GetUnits(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)

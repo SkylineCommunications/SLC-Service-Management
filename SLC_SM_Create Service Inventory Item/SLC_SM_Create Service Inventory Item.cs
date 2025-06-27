@@ -157,7 +157,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 
 			// Init views
 			var view = new ServiceView(_engine);
-			var presenter = new ServicePresenter(repo, view, repo.Services.Read().Select(x => x.Name).ToArray());
+			var presenter = new ServicePresenter(repo, view, repo.Services.Read().Select(x => x.Name).ToList());
 
 			if (action == Action.AddItem)
 			{
@@ -165,7 +165,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 				d.OkButton.Pressed += (sender, args) =>
 				{
 					var serviceOrderItem = repo.ServiceOrderItems.Read().Find(x => x.ID == domId);
-					if (domId != Guid.Empty && serviceOrderItem != null)
+					if (domId != Guid.Empty && serviceOrderItem == null)
 					{
 						throw new InvalidOperationException($"No Service Order Item with ID '{domId}' found on the system!");
 					}
@@ -301,28 +301,42 @@ namespace SLC_SM_Create_Service_Inventory_Item
 
 			instance.Icon = serviceSpecificationInstance.Icon;
 			instance.Description = serviceSpecificationInstance.Description;
-			instance.Properties = serviceSpecificationInstance.Properties;
+			instance.Properties = serviceSpecificationInstance.Properties ?? new Models.ServicePropertyValues();
 			instance.Properties.ID = Guid.NewGuid();
-			instance.Configurations = serviceSpecificationInstance.Configurations.Select(x => new Models.ServiceConfigurationValue
-			{
-				ID = Guid.NewGuid(),
-				ConfigurationParameter = x.ConfigurationParameter,
-				Mandatory = x.MandatoryAtService,
-			}).ToList();
 
-			foreach (var relationship in serviceSpecificationInstance.ServiceItemsRelationships)
+			if (serviceSpecificationInstance.Configurations != null)
 			{
-				if (!instance.ServiceItemsRelationships.Contains(relationship))
+				instance.Configurations = serviceSpecificationInstance.Configurations
+					.Where(x => x?.ConfigurationParameter != null)
+					.Select(
+						x => new Models.ServiceConfigurationValue
+						{
+							ID = Guid.NewGuid(),
+							ConfigurationParameter = x.ConfigurationParameter,
+							Mandatory = x.MandatoryAtService,
+						})
+					.ToList();
+			}
+
+			if (serviceSpecificationInstance.ServiceItemsRelationships != null)
+			{
+				foreach (var relationship in serviceSpecificationInstance.ServiceItemsRelationships)
 				{
-					instance.ServiceItemsRelationships.Add(relationship);
+					if (!instance.ServiceItemsRelationships.Contains(relationship))
+					{
+						instance.ServiceItemsRelationships.Add(relationship);
+					}
 				}
 			}
 
-			foreach (var item in serviceSpecificationInstance.ServiceItems)
+			if (serviceSpecificationInstance.ServiceItems != null)
 			{
-				if (!instance.ServiceItems.Contains(item))
+				foreach (var item in serviceSpecificationInstance.ServiceItems)
 				{
-					instance.ServiceItems.Add(item);
+					if (!instance.ServiceItems.Contains(item))
+					{
+						instance.ServiceItems.Add(item);
+					}
 				}
 			}
 

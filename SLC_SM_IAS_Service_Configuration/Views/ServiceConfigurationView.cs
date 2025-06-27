@@ -18,5 +18,9 @@
 		public Button BtnUpdate { get; } = new Button("Update");
 
 		public Button BtnCancel { get; } = new Button("Cancel");
+
+		public Button BtnShowValueDetails { get; } = new Button("Show Value Details");
+
+		public Section Details { get; } = new Section();
 	}
 }

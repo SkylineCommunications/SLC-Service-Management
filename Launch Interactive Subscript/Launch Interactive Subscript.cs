@@ -82,10 +82,6 @@ namespace Launch_Interactive_Subscript_1
             *
             * engine.ShowUI();
             */
-            if (engine.IsInteractive)
-            {
-                engine.FindInteractiveClient("Failed to run script in interactive mode", 1);
-            }
 
             try
             {
