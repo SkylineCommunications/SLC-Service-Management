@@ -41,10 +41,12 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 							ID = s.ServiceItemID ?? 1,
 							Label = s.Label ?? String.Empty,
 							Type = s.ServiceItemType ?? SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking,
-							Script = s.ServiceItemScript,
-							DefinitionReference = s.DefinitionReference,
-							ImplementationReference = s.ImplementationReference,
-						}).ToList(),
+							Script = s.ServiceItemScript ?? String.Empty,
+							DefinitionReference = s.DefinitionReference ?? String.Empty,
+							ImplementationReference = s.ImplementationReference ?? String.Empty,
+						})
+							.Where(s => !String.IsNullOrEmpty(s.Label))
+							.ToList(),
 						ServiceItemsRelationships = x.ServiceItemRelationship.Select(r => new Models.ServiceItemRelationShip
 						{
 							ParentServiceItem = r.ParentServiceItem,

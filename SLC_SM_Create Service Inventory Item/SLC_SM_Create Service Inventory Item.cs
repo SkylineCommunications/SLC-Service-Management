@@ -335,6 +335,26 @@ namespace SLC_SM_Create_Service_Inventory_Item
 				{
 					if (!instance.ServiceItems.Contains(item))
 					{
+						if (instance.ServiceItems.Any(x => x.ID == item.ID))
+						{
+							item.ID = instance.ServiceItems.Max(x => x.ID) + 1;
+						}
+
+						if (String.IsNullOrEmpty(item.Label))
+						{
+							item.Label = $"Service Item #{item.ID:000}";
+						}
+
+						if (String.IsNullOrEmpty(item.DefinitionReference))
+						{
+							item.DefinitionReference = String.Empty;
+						}
+
+						if (String.IsNullOrEmpty(item.Script))
+						{
+							item.Script = String.Empty;
+						}
+
 						instance.ServiceItems.Add(item);
 					}
 				}

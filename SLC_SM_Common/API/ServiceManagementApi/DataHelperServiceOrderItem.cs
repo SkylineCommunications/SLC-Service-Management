@@ -82,7 +82,13 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 		public override bool TryDelete(Models.ServiceOrderItem item)
 		{
-			bool ok = TryDelete(item.Properties.ID);
+			bool ok = true;
+
+			if (item.Properties != null)
+			{
+				ok &= TryDelete(item.Properties.ID);
+			}
+
 			foreach (var serviceOrderItemConfigurationValue in item.Configurations)
 			{
 				ok &= TryDelete(serviceOrderItemConfigurationValue.ID);

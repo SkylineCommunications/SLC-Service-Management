@@ -99,7 +99,10 @@
 
 		private void AddConfigModel()
 		{
-			var configurationParameterInstance = new Models.ConfigurationParameter();
+			var configurationParameterInstance = new Models.ConfigurationParameter
+			{
+				Name = $"Parameter #{configurations.Count + 1:000}",
+			};
 			configurations.Add(BuildDataRecord(configurationParameterInstance, State.Update));
 		}
 
@@ -211,6 +214,17 @@
 
 			label.Changed += (sender, args) =>
 			{
+				if (String.IsNullOrEmpty(args.Value))
+				{
+					label.ValidationState = UIValidationState.Invalid;
+					label.ValidationText = "A name must be provided";
+					label.Text = args.Previous;
+					return;
+				}
+
+				label.ValidationState = UIValidationState.Valid;
+				label.ValidationText = String.Empty;
+
 				record.ConfigurationParam.Name = args.Value;
 				record.State = State.Update;
 			};
@@ -255,6 +269,12 @@
 
 				BuildUI();
 			};
+
+			if (String.IsNullOrEmpty(label.Text))
+			{
+				label.ValidationState = UIValidationState.Invalid;
+				label.ValidationText = "A name must be provided";
+			}
 
 			switch (record.ConfigurationParam.Type)
 			{

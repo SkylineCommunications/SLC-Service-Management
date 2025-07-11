@@ -65,7 +65,9 @@
 		public void LoadFromModel()
 		{
 			// Load correct types
-			view.ServiceCategory.SetOptions(repo.ServiceCategories.Read().OrderBy(x => x.Name).Select(x => new Option<Models.ServiceCategory>(x.Name, x)));
+			var categoryOptions = repo.ServiceCategories.Read().OrderBy(x => x.Name).Select(x => new Option<Models.ServiceCategory>(x.Name, x)).ToList();
+			categoryOptions.Insert(0, new Option<Models.ServiceCategory>("-None-", null));
+			view.ServiceCategory.SetOptions(categoryOptions);
 
 			var specs = repo.ServiceSpecifications.Read().OrderBy(x => x.Name).Select(x => new Option<Models.ServiceSpecification>(x.Name, x)).ToList();
 			specs.Insert(0, new Option<Models.ServiceSpecification>("-None-", null));

@@ -94,12 +94,15 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 		public override bool TryDelete(Models.ServiceOrder item)
 		{
-			bool b = true;
+			bool ok = true;
 
 			var helper = new DataHelperServiceOrderItem(_connection);
 			foreach (var orderItem in item.OrderItems)
 			{
-				b &= helper.TryDelete(orderItem.ServiceOrderItem);
+				if (orderItem.ServiceOrderItem != null)
+				{
+					ok &= helper.TryDelete(orderItem.ServiceOrderItem);
+				}
 			}
 
 			return TryDelete(item.ID);

@@ -54,13 +54,10 @@ dd/mm/2025    1.0.0.1        XXX, Skyline    Initial version
 namespace SLC_SM_Delete_Service_Order
 {
 	using System;
-	using System.Linq;
 
 	using Library;
 
 	using Skyline.DataMiner.Automation;
-
-	using SLC_SM_Common.API.ServiceManagementApi;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -99,13 +96,13 @@ namespace SLC_SM_Delete_Service_Order
 			}
 			catch (Exception e)
 			{
-				engine.ExitFail(e.Message);
+				engine.ExitFail(e.ToString());
 			}
 		}
 
 		private void RunSafe()
 		{
-			if (!Guid.TryParse(_engine.GetScriptParam("DOM ID").Value.Trim('"', '[', ']'), out Guid domId))
+			if (!Guid.TryParse(_engine.GetScriptParam("DOM ID")?.Value?.Trim('"', '[', ']'), out Guid domId))
 			{
 				throw new InvalidOperationException("No DOM ID provided as input to the script");
 			}

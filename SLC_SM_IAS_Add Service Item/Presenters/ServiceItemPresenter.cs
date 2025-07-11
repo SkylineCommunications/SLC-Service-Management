@@ -3,14 +3,17 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers.SlcServicemanagement;
 	using DomHelpers.SlcWorkflow;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 	using Skyline.DataMiner.Utils.MediaOps.Common.IOData.Scheduling.Scripts.JobHandler;
 	using Skyline.DataMiner.Utils.MediaOps.Helpers.Workflows;
+
 	using SLC_SM_IAS_Add_Service_Item_1.Views;
 
 	public class ServiceItemPresenter
@@ -78,20 +81,29 @@
 			return job.ID.Id.ToString();
 		}
 
-		public void LoadFromModel(int serviceItemCount)
+		private void UpdateLabelPlaceholder(SlcServicemanagementIds.Enums.ServiceitemtypesEnum serviceItemType, string definitionReference)
 		{
-			view.TboxLabel.PlaceHolder = $"Service Item #{serviceItemCount:000}";
+			string tboxLabelPlaceHolder = $"{serviceItemType}_{definitionReference}";
+			while (getServiceItemLabels.Contains(tboxLabelPlaceHolder))
+			{
+				tboxLabelPlaceHolder += " (1)";
+			}
 
+			view.TboxLabel.PlaceHolder = tboxLabelPlaceHolder;
+		}
+
+		public void LoadFromModel()
+		{
 			// Load correct types
 			view.ServiceItemType.SetOptions(
 				new List<Option<SlcServicemanagementIds.Enums.ServiceitemtypesEnum>>
 				{
 					new Option<SlcServicemanagementIds.Enums.ServiceitemtypesEnum>(
-						SlcServicemanagementIds.Enums.Serviceitemtypes.SRMBooking,
-						SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking),
-					new Option<SlcServicemanagementIds.Enums.ServiceitemtypesEnum>(
 						SlcServicemanagementIds.Enums.Serviceitemtypes.Workflow,
 						SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Workflow),
+					new Option<SlcServicemanagementIds.Enums.ServiceitemtypesEnum>(
+						SlcServicemanagementIds.Enums.Serviceitemtypes.SRMBooking,
+						SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking),
 				});
 			OnUpdateServiceItemType(view.ServiceItemType.Selected);
 		}
@@ -99,7 +111,7 @@
 		public void LoadFromModel(ServiceItemsSection section)
 		{
 			// Load correct types
-			LoadFromModel(0);
+			LoadFromModel();
 
 			view.BtnAdd.Text = "Edit Service Item";
 			view.TboxLabel.Text = section.Label;
@@ -160,6 +172,8 @@
 				return;
 			}
 
+			UpdateLabelPlaceholder(view.ServiceItemType.Selected, selected);
+
 			var el = engine.FindElement(selected);
 			if (el == null)
 			{
@@ -175,7 +189,13 @@
 		{
 			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Workflow)
 			{
-				view.DefinitionReferences.SetOptions(workflows.Select(x => x.Name).OrderBy(x => x));
+				var workflowOptions = workflows.Select(x => x.Name).OrderBy(x => x).ToList();
+				view.DefinitionReferences.SetOptions(workflowOptions);
+				if (workflowOptions.Exists(x => x == "Default"))
+				{
+					view.DefinitionReferences.Selected = "Default";
+				}
+
 				view.ScriptSelection.SetOptions(new List<string>());
 				view.ScriptSelection.IsEnabled = false;
 			}
@@ -186,6 +206,8 @@
 				OnUpdateDefinitionReference(view.DefinitionReferences.Selected);
 				view.ScriptSelection.IsEnabled = false;
 			}
+
+			UpdateLabelPlaceholder(serviceItemType, view.DefinitionReferences.Selected);
 		}
 
 		private bool ValidateLabel(string newValue)
