@@ -78,15 +78,19 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 			var dataHelperServiceOrderItem = new DataHelperServiceOrderItem(_connection);
 
 			instance.ServiceOrderItems.Clear();
-			foreach (Models.ServiceOrderItems item in order.OrderItems)
+			if (order.OrderItems != null)
 			{
-				item.ServiceOrderItem.ID = dataHelperServiceOrderItem.CreateOrUpdate(item.ServiceOrderItem);
-
-				instance.ServiceOrderItems.Add(new ServiceOrderItemsSection
+				foreach (Models.ServiceOrderItems item in order.OrderItems)
 				{
-					PriorityOrder = item.Priority,
-					ServiceOrderItem = item.ServiceOrderItem.ID,
-				});
+					item.ServiceOrderItem.ID = dataHelperServiceOrderItem.CreateOrUpdate(item.ServiceOrderItem);
+
+					instance.ServiceOrderItems.Add(
+						new ServiceOrderItemsSection
+						{
+							PriorityOrder = item.Priority,
+							ServiceOrderItem = item.ServiceOrderItem.ID,
+						});
+				}
 			}
 
 			return CreateOrUpdateInstance(instance);
@@ -97,11 +101,14 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 			bool ok = true;
 
 			var helper = new DataHelperServiceOrderItem(_connection);
-			foreach (var orderItem in item.OrderItems)
+			if (item.OrderItems != null)
 			{
-				if (orderItem.ServiceOrderItem != null)
+				foreach (var orderItem in item.OrderItems)
 				{
-					ok &= helper.TryDelete(orderItem.ServiceOrderItem);
+					if (orderItem.ServiceOrderItem != null)
+					{
+						ok &= helper.TryDelete(orderItem.ServiceOrderItem);
+					}
 				}
 			}
 

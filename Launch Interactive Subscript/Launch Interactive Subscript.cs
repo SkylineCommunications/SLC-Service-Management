@@ -106,7 +106,7 @@ namespace Launch_Interactive_Subscript_1
                             return;
                         }
 
-                        serviceItem.ImplementationReference = scriptOutput;
+                        serviceItem.ImplementationReference = !String.IsNullOrEmpty(scriptOutput) ? scriptOutput : "Reference Unknown";
                         serviceItemInstance.Save(domHelper);
                     }
                 }
@@ -130,7 +130,7 @@ namespace Launch_Interactive_Subscript_1
 
             if (subScript.HadError)
             {
-                throw new InvalidOperationException(String.Join(@"\r\n", subScript.GetErrorMessages()));
+                throw new InvalidOperationException($"Failed to start the Booking Manager script '{scriptName}' due to:\r\n" + String.Join(@"\r\n ->", subScript.GetErrorMessages()));
             }
 
             return subScript.GetScriptResult().FirstOrDefault().Value;

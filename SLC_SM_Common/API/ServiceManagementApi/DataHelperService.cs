@@ -158,10 +158,19 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 
 		public override bool TryDelete(Models.Service item)
 		{
-			bool b = TryDelete(item.Properties.ID);
-			foreach (var config in item.Configurations)
+			bool b = true;
+
+			if (item.Properties != null)
 			{
-				b &= TryDelete(config.ID);
+				b &= TryDelete(item.Properties.ID);
+			}
+
+			if (item.Configurations != null)
+			{
+				foreach (var config in item.Configurations)
+				{
+					b &= TryDelete(config.ID);
+				}
 			}
 
 			return b && TryDelete(item.ID);

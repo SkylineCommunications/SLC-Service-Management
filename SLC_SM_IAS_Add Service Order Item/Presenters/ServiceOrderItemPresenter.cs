@@ -138,26 +138,26 @@
 				view.End.IsEnabled = false;
 			}
 
-			var serviceCategoryInstance = repo.ServiceCategories.Read().FirstOrDefault(x => x?.ID == instance.ServiceOrderItem.ServiceCategoryId);
-			if (serviceCategoryInstance != null && view.Category.Values.Contains(serviceCategoryInstance))
+			var serviceCategoryInstance = view.Category.Values.FirstOrDefault(v => v?.ID == instance.ServiceOrderItem.ServiceCategoryId);
+			if (serviceCategoryInstance != null)
 			{
 				view.Category.Selected = serviceCategoryInstance;
 			}
 
-			var serviceInstance = repo.Services.Read().FirstOrDefault(x => x.ID == instance.ServiceOrderItem.ServiceId);
-			if (serviceInstance != null && view.Service.Values.Contains(serviceInstance))
+			var serviceInstance = view.Service.Values.First(v => v?.ID == instance.ServiceOrderItem.ServiceId);
+			if (serviceInstance != null)
 			{
 				view.Service.Selected = serviceInstance;
 			}
 
-			var serviceSpecificationsInstance = repo.ServiceSpecifications.Read().FirstOrDefault(x => x?.ID == instance.ServiceOrderItem.SpecificationId);
-			if (serviceSpecificationsInstance != null && view.Specification.Values.Contains(serviceSpecificationsInstance))
+			var serviceSpecificationsInstance = view.Specification.Values.FirstOrDefault(v => v?.ID == instance.ServiceOrderItem.SpecificationId);
+			if (serviceSpecificationsInstance != null)
 			{
 				view.Specification.Selected = serviceSpecificationsInstance;
 			}
 			else
 			{
-				view.Specification.Selected = view.Specification.Values.FirstOrDefault(x => x?.ID == view.Service.Selected?.ServiceSpecificationId);
+				view.Specification.Selected = view.Specification.Values.FirstOrDefault(v => v?.ID == view.Service.Selected?.ServiceSpecificationId);
 			}
 
 			UpdateUiOnActionTypeChange(view.ActionType.SelectedOption);
