@@ -33,8 +33,8 @@
 
 			AddWidget(new WhiteSpace { Height = 25 }, ++row, 0);
 			AddWidget(ButtonPrevious, ++row, 0, HorizontalAlignment.Left);
-			AddWidget(ButtonCancel, row, 1, HorizontalAlignment.Right);
-			AddWidget(ButtonValidate, row, 2, HorizontalAlignment.Right);
+			AddWidget(ButtonValidate, row, 1, HorizontalAlignment.Right);
+			AddWidget(ButtonCancel, row, 2, HorizontalAlignment.Right);
 
 			SetColumnWidth(0, 100);
 			SetColumnWidth(1, 100);

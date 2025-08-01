@@ -216,8 +216,8 @@
 			};
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
-			view.AddWidget(view.BtnCancel, ++row, 0);
-			view.AddWidget(view.BtnUpdate, row, 1);
+			view.AddWidget(view.BtnUpdate, ++row, 0);
+			view.AddWidget(view.BtnCancel, row, 1);
 		}
 
 		private void BuildUIRow(DataRecord record, int row, int sectionRow)

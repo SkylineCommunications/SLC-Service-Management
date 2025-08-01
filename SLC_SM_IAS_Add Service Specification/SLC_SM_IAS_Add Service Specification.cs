@@ -48,21 +48,25 @@ DATE        VERSION        AUTHOR            COMMENTS
 dd/mm/2025    1.0.0.1        XXX, Skyline    Initial version
 ****************************************************************************
 */
-namespace SLC_SM_IAS_Add_Service_Order_1
+namespace SLC_SM_IAS_Add_Service_Specification
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using DomHelpers.SlcServicemanagement;
+
 	using Library.Views;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	using SLC_SM_Common.API.ServiceManagementApi;
 
-	using SLC_SM_IAS_Add_Service_Order_1.Presenters;
-	using SLC_SM_IAS_Add_Service_Order_1.Views;
+	using SLC_SM_IAS_Add_Service_Specification.Presenters;
+	using SLC_SM_IAS_Add_Service_Specification.Views;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -136,15 +140,14 @@ namespace SLC_SM_IAS_Add_Service_Order_1
 				throw new InvalidOperationException("No Action provided as input to the script");
 			}
 
-			var dataHelperOrders = new DataHelperServiceOrder(Engine.SLNetRaw);
-			List<Models.ServiceOrder> serviceOrders = dataHelperOrders.Read();
+			var dataHelperServiceSpec = new DataHelperServiceSpecification(Engine.SLNetRaw);
+			List<Models.ServiceSpecification> serviceSpecifications = dataHelperServiceSpec.Read();
 
-			var usedOrderItemLabels = serviceOrders.Select(o => o.Name).ToList();
-			var usedOrderIds = serviceOrders.Select(o => o.OrderId).ToList();
+			var usedOrderItemLabels = serviceSpecifications.Select(x => x.Name).ToList();
 
 			// Init views
-			var view = new ServiceOrderView(_engine);
-			var presenter = new ServiceOrderPresenter(_engine, view, usedOrderItemLabels, usedOrderIds);
+			var view = new ServiceSpecView(_engine);
+			var presenter = new ServiceSpecPresenter(_engine, view, usedOrderItemLabels);
 
 			// Events
 			view.BtnCancel.Pressed += (sender, args) => throw new ScriptAbortException("OK");
@@ -152,7 +155,7 @@ namespace SLC_SM_IAS_Add_Service_Order_1
 			{
 				if (presenter.Validate())
 				{
-					dataHelperOrders.CreateOrUpdate(presenter.GetData);
+					dataHelperServiceSpec.CreateOrUpdate(presenter.GetData);
 					throw new ScriptAbortException("OK");
 				}
 			};
@@ -163,9 +166,9 @@ namespace SLC_SM_IAS_Add_Service_Order_1
 			}
 			else
 			{
-				var ordersInstance = serviceOrders.Find(x => x.ID == domId)
-				                     ?? throw new InvalidOperationException($"No Service Order with ID '{domId}' found on the system!");
-				presenter.LoadFromModel(ordersInstance);
+				var specification = serviceSpecifications.Find(x => x.ID == domId)
+				                     ?? throw new InvalidOperationException($"No Service Specification with ID '{domId}' found on the system!");
+				presenter.LoadFromModel(specification);
 			}
 
 			// Run interactive

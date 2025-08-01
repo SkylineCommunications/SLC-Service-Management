@@ -40,7 +40,7 @@
 			AddWidget(CloseButton, ++row, 1);
 		}
 
-		private Button CloseButton { get; } = new Button("Close") { Height = ButtonHeight, Width = ButtonWidth };
+		private Button CloseButton { get; } = new Button("Close") { Height = ButtonHeight, Width = ButtonWidth, Style = ButtonStyle.CallToAction };
 
 		private TextBox DetailsBox { get; } = new TextBox { MaxWidth = 800, IsMultiline = true, IsVisible = false, MinHeight = 100, MaxHeight = 250 };
 

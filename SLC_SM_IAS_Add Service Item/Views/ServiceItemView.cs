@@ -1,8 +1,11 @@
 ﻿namespace SLC_SM_IAS_Add_Service_Item_1.Views
 {
 	using System;
+
 	using DomHelpers.SlcServicemanagement;
+
 	using Library;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
@@ -11,26 +14,24 @@
 		public ServiceItemView(IEngine engine) : base(engine)
 		{
 			Title = "Manage Service Item";
-			MinWidth = Defaults.DialogMinWidth;
 
 			int row = 0;
-			AddWidget(new Label("Service Item Details") { Style = TextStyle.Heading }, row, 0);
-			AddWidget(LblLabel, ++row, 0);
-			AddWidget(TboxLabel, row, 1);
-			AddWidget(ErrorLabel, row, 2);
+			AddWidget(LblLabel, row, 0);
+			AddWidget(TboxLabel, row, 1, 1, 2);
+			AddWidget(ErrorLabel, row, 3);
 
 			AddWidget(LblServiceItemType, ++row, 0);
-			AddWidget(ServiceItemType, row, 1);
+			AddWidget(ServiceItemType, row, 1, 1, 2);
 
 			AddWidget(LblDefinitionReference, ++row, 0);
-			AddWidget(DefinitionReferences, row, 1);
+			AddWidget(DefinitionReferences, row, 1, 1, 2);
 
 			AddWidget(LblScriptSelection, ++row, 0);
-			AddWidget(ScriptSelection, row, 1);
+			AddWidget(ScriptSelection, row, 1, 1, 2);
 
 			AddWidget(new WhiteSpace(), ++row, 0);
-			AddWidget(BtnCancel, ++row, 0);
-			AddWidget(BtnAdd, row, 1);
+			AddWidget(BtnAdd, ++row, 1);
+			AddWidget(BtnCancel, row, 2);
 		}
 
 		public Label LblLabel { get; } = new Label("Label");
@@ -53,6 +54,6 @@
 
 		public DropDown ScriptSelection { get; } = new DropDown { Width = Defaults.WidgetWidth };
 
-		public Button BtnAdd { get; } = new Button("Create Service Item");
+		public Button BtnAdd { get; } = new Button("Create") { Style = ButtonStyle.CallToAction };
 	}
 }

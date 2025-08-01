@@ -50,6 +50,8 @@ namespace SLC_SM_Common.API
 
 				public string StatusId { get; set; }
 
+				public string OrderId { get; set; }
+
 				public string Name { get; set; }
 
 				public string ExternalID { get; set; }
@@ -169,6 +171,8 @@ namespace SLC_SM_Common.API
 				public Guid ID { get; set; }
 
 				public string Name { get; set; }
+
+				public string ServiceID { get; set; }
 
 				public string Description { get; set; }
 

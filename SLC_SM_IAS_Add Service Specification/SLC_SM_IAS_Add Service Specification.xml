@@ -1,14 +1,18 @@
-﻿<DMSScript options="1296" xmlns="http://www.skyline.be/automation">
-	<Name>SLC_SM_IAS_Add Service Order</Name>
-	<Description />
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DMSScript options="272" xmlns="http://www.skyline.be/automation">
+	<Name>SLC_SM_IAS_Add Service Specification</Name>
+	<Description></Description>
 	<Type>Automation</Type>
-	<Author>rmeuriss</Author>
+	<Author>RME</Author>
 	<CheckSets>FALSE</CheckSets>
 	<Folder>Service Management</Folder>
+
 	<Protocols>
 	</Protocols>
+
 	<Memory>
 	</Memory>
+
 	<Parameters>
 		<ScriptParameter id="10" type="string" values="">
 			<Description>DOM ID</Description>
@@ -17,10 +21,12 @@
 			<Description>Action</Description>
 		</ScriptParameter>
 	</Parameters>
+
 	<Script>
-		<Exe id="12" type="csharp">
-			<Value><![CDATA[[Project:SLC_SM_IAS_Add Service Order]]]></Value>
-			<Message />
+		<Exe id="1" type="csharp">
+			<Value><![CDATA[[Project:SLC_SM_IAS_Add Service Specification]]]></Value>
+			<!--<Param type="debug">true</Param>-->
+			<Message></Message>
 		</Exe>
 	</Script>
 </DMSScript>

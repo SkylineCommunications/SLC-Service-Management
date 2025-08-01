@@ -17,9 +17,9 @@
 
 	public class ServicePresenter
 	{
+		private readonly List<string> getServiceLabels;
 		private readonly Repo repo;
 		private readonly ServiceView view;
-		private readonly List<string> getServiceLabels;
 		private Models.Service instanceToReturn;
 		private bool isEdit = false;
 
@@ -28,15 +28,18 @@
 			this.repo = repo;
 			this.view = view;
 			this.getServiceLabels = getServiceLabels;
+			string defaultServiceId = repo.Services.UniqueServiceId();
 			instanceToReturn = new Models.Service
 			{
 				ID = Guid.NewGuid(),
-				Name = $"Service #{getServiceLabels.Count:000}",
-				Description = $"Service #{getServiceLabels.Count:000}",
+				Name = defaultServiceId,
+				ServiceID = defaultServiceId,
+				Description = defaultServiceId,
 				ServiceItems = new List<Models.ServiceItem>(),
 				ServiceItemsRelationships = new List<Models.ServiceItemRelationShip>(),
 			};
 			view.TboxName.PlaceHolder = instanceToReturn.Name;
+			view.ServiceId.Text = instanceToReturn.ServiceID;
 
 			view.IndefiniteRuntime.Changed += (sender, args) => view.End.IsEnabled = !args.IsChecked;
 			view.TboxName.Changed += (sender, args) => ValidateLabel(args.Value);
@@ -49,6 +52,7 @@
 			get
 			{
 				instanceToReturn.Name = Name;
+				instanceToReturn.ServiceID = view.ServiceId.Text;
 				instanceToReturn.Description = instanceToReturn.Description ?? String.Empty;
 				instanceToReturn.StartTime = view.Start.DateTime.ToUniversalTime();
 				instanceToReturn.EndTime = view.IndefiniteRuntime.IsChecked ? default(DateTime?) : view.End.DateTime.ToUniversalTime();
@@ -73,7 +77,10 @@
 			specs.Insert(0, new Option<Models.ServiceSpecification>("-None-", null));
 			view.Specs.SetOptions(specs);
 
-			var orgs = new DataHelperOrganization(Engine.SLNetRaw).Read().OrderBy(x => x.Name).Select(x => new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>(x.Name, x)).ToList();
+			var orgs = new DataHelperOrganization(Engine.SLNetRaw).Read()
+				.OrderBy(x => x.Name)
+				.Select(x => new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>(x.Name, x))
+				.ToList();
 			orgs.Insert(0, new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>("-None-", null));
 			view.Organizations.SetOptions(orgs);
 
@@ -92,6 +99,12 @@
 
 			view.BtnAdd.Text = "Edit Service Inventory Item";
 			view.TboxName.Text = instance.Name;
+			if (!String.IsNullOrEmpty(instance.ServiceID))
+			{
+				view.TboxName.PlaceHolder = instance.ServiceID;
+				view.ServiceId.Text = instance.ServiceID;
+			}
+
 			if (instance.StartTime.HasValue)
 			{
 				view.Start.DateTime = instance.StartTime.Value.ToLocalTime();

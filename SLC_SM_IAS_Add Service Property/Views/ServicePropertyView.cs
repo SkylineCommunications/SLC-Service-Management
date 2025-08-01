@@ -11,21 +11,19 @@
 		public ServicePropertyView(IEngine engine) : base(engine)
 		{
 			Title = "Manage Service Property";
-			MinWidth = Defaults.DialogMinWidth;
 
 			int row = 0;
-			AddWidget(new Label("Service Property Details") { Style = TextStyle.Heading }, row, 0);
-			AddWidget(LblServicePropertyName, ++row, 0);
-			AddWidget(ServiceProperty, row, 1);
+			AddWidget(LblServicePropertyName, row, 0);
+			AddWidget(ServiceProperty, row, 1, 1, 2);
 
 			AddWidget(LblValue, ++row, 0);
-			AddWidget(TBoxValue, row, 1);
-			AddWidget(ErrorValue, row, 2);
-			AddWidget(DdValue, ++row, 1);
+			AddWidget(TBoxValue, row, 1, 1, 2);
+			AddWidget(ErrorValue, row, 3);
+			AddWidget(DdValue, ++row, 1, 1, 2);
 
 			AddWidget(new WhiteSpace(), ++row, 0);
-			AddWidget(BtnCancel, ++row, 0);
-			AddWidget(BtnAdd, row, 1);
+			AddWidget(BtnAdd, ++row, 1);
+			AddWidget(BtnCancel, row, 2);
 		}
 
 		public Label LblServicePropertyName { get; } = new Label("Service Property");
@@ -40,7 +38,7 @@
 
 		public Label ErrorValue { get; } = new Label(String.Empty);
 
-		public Button BtnAdd { get; } = new Button("Create Service Property");
+		public Button BtnAdd { get; } = new Button("Create") { Style = ButtonStyle.CallToAction };
 
 		public Button BtnCancel { get; } = new Button("Cancel");
 	}

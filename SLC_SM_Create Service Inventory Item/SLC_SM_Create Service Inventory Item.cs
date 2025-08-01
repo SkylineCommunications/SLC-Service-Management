@@ -1,6 +1,3 @@
-//---------------------------------
-// SLC_SM_Create Service Inventory Item_1.cs
-//---------------------------------
 /*
 ****************************************************************************
 *  Copyright (c) 2025,  Skyline Communications NV  All Rights Reserved.    *
@@ -217,14 +214,17 @@ namespace SLC_SM_Create_Service_Inventory_Item
 
 		private void CreateNewServiceAndLinkItToServiceOrder(Repo repo, Models.ServiceOrderItem serviceOrder)
 		{
-			if (serviceOrder.ServiceId.HasValue)
+			List<Models.Service> services = repo.Services.Read();
+			if (serviceOrder.ServiceId.HasValue && services.Exists(s => s.ID == serviceOrder.ServiceId))
 			{
+				// Already initialized - don't do anything, safety check
 				return;
 			}
 
 			// Create new service item based on order
 			Models.Service newService = new Models.Service
 			{
+				ServiceID = repo.Services.UniqueServiceId(services),
 				Name = serviceOrder.Name,
 				Description = serviceOrder.Name,
 				StartTime = serviceOrder.StartTime,
@@ -234,6 +234,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 				Properties = serviceOrder.Properties,
 				Category = repo.ServiceCategories.Read().Find(x => x.ID == serviceOrder.ServiceCategoryId),
 				ServiceItems = new List<Models.ServiceItem>(),
+				ServiceItemsRelationships = new List<Models.ServiceItemRelationShip>(),
 			};
 
 			if (serviceOrder.Configurations != null)
@@ -258,6 +259,17 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			if (spec != null)
 			{
 				newService.Icon = spec.Icon;
+				if (spec.ServiceItemsRelationships != null)
+				{
+					foreach (var relationship in spec.ServiceItemsRelationships)
+					{
+						if (!newService.ServiceItemsRelationships.Contains(relationship))
+						{
+							newService.ServiceItemsRelationships.Add(relationship);
+						}
+					}
+				}
+
 				if (spec.ServiceItems != null)
 				{
 					foreach (var item in spec.ServiceItems)
@@ -349,7 +361,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			string actionRaw = _engine.GetScriptParam("Action").Value.Trim('"', '[', ']');
 			if (!Enum.TryParse(actionRaw, true, out Action action))
 			{
-				throw new InvalidOperationException("No Action provided as input to the script");
+				action = Action.AddItem;
 			}
 
 			string domIdRaw = _engine.GetScriptParam("DOM ID").Value.Trim('"', '[', ']');

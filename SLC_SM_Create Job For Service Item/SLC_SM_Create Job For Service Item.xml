@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
 	<Name>SLC_SM_Create Job For Service Item</Name>
-	<Description></Description>
+	<Description />
 	<Type>Automation</Type>
 	<Author>RME</Author>
 	<CheckSets>FALSE</CheckSets>
-	<Folder></Folder>
+	<Folder>Service Management</Folder>
 
 	<Protocols>
 	</Protocols>
@@ -24,9 +24,11 @@
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value><![CDATA[[Project:SLC_SM_Create Job For Service Item]]]></Value>
+			<Value>
+				<![CDATA[[Project:SLC_SM_Create Job For Service Item]]]>
+			</Value>
 			<!--<Param type="debug">true</Param>-->
-			<Message></Message>
+			<Message />
 		</Exe>
 	</Script>
 </DMSScript>

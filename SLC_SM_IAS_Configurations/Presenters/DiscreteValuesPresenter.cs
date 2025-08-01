@@ -69,12 +69,12 @@
 
 			int row = 0;
 			view.AddWidget(new Label("Manage Discrete Options") { Style = TextStyle.Heading }, row, 0);
-			view.AddWidget(view.Value, ++row, 0);
-			view.AddWidget(view.BtnAddOption, row, 1);
+			view.AddWidget(view.Value, ++row, 0, 1, 2);
+			view.AddWidget(view.BtnAddOption, row, 2, 1, 2);
 			view.AddWidget(view.ErrorValue, ++row, 0, 1, 2);
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
-			view.AddWidget(new Label("Options") { Style = TextStyle.Heading }, ++row, 0);
+			view.AddWidget(new Label("Options") { Style = TextStyle.Heading }, ++row, 0, 1, 2);
 
 			int d = 0;
 			foreach (Models.DiscreteValue discrete in options.DiscreteValues.OrderBy(x => x.Value))
@@ -86,8 +86,8 @@
 					Build();
 				};
 
-				view.Options.AddWidget(new Label(" • " + discrete.Value), d, 0);
-				view.Options.AddWidget(btnRemove, d, 1);
+				view.Options.AddWidget(new Label(" • " + discrete.Value), d, 0, 1, 2);
+				view.Options.AddWidget(btnRemove, d, 2);
 				d++;
 			}
 
@@ -95,8 +95,8 @@
 			row += options.DiscreteValues.Count;
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
-			view.AddWidget(view.BtnReturn, ++row, 0);
-			view.AddWidget(view.BtnApply, row, 1);
+			view.AddWidget(view.BtnApply, ++row, 2);
+			view.AddWidget(view.BtnReturn, row, 3);
 		}
 	}
 }

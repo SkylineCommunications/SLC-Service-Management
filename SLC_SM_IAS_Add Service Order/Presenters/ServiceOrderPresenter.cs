@@ -3,51 +3,63 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers.SlcPeople_Organizations;
 	using DomHelpers.SlcServicemanagement;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
+
+	using SLC_SM_Common.API.ServiceManagementApi;
+
 	using SLC_SM_IAS_Add_Service_Order_1.Views;
 
 	public class ServiceOrderPresenter
 	{
 		private readonly IEngine engine;
 		private readonly List<string> getServiceOrderItemLabels;
+		private readonly List<string> usedOrderIds;
 		private readonly ServiceOrderView view;
-		private ServiceOrdersInstance instanceToReturn;
+		private Models.ServiceOrder instanceToReturn;
 		private PeopleInstance[] peopleInstances;
 
-		public ServiceOrderPresenter(IEngine engine, ServiceOrderView view, string[] getServiceOrderItemLabels)
+		public ServiceOrderPresenter(IEngine engine, ServiceOrderView view, List<string> getServiceOrderItemLabels, List<string> usedOrderIds)
 		{
 			this.engine = engine;
 			this.view = view;
-			this.getServiceOrderItemLabels = getServiceOrderItemLabels.ToList();
-			instanceToReturn = new ServiceOrdersInstance();
+			this.getServiceOrderItemLabels = getServiceOrderItemLabels;
+			this.usedOrderIds = usedOrderIds;
+			instanceToReturn = new Models.ServiceOrder
+			{
+				ContactIds = new List<Guid>(),
+				OrderItems = new List<Models.ServiceOrderItems>(),
+			};
 
 			view.TboxName.Changed += (sender, args) => ValidateLabel(args.Value);
 			view.Org.Changed += (sender, args) => UpdateContactOnSelectedOrganization(args.Selected);
 		}
 
-		public ServiceOrdersInstance GetData
+		public Models.ServiceOrder GetData
 		{
 			get
 			{
-				instanceToReturn.ServiceOrderInfo.Name = Name;
-				instanceToReturn.ServiceOrderInfo.ExternalID = view.ExternalId.Text;
-				instanceToReturn.ServiceOrderInfo.Priority = view.Priority.Selected;
-				instanceToReturn.ServiceOrderInfo.Description = view.Description.Text;
-				instanceToReturn.ServiceOrderInfo.RelatedOrganization = view.Org.Selected?.ID.Id;
+				instanceToReturn.Name = Name;
+				instanceToReturn.OrderId = view.OrderId.Text;
+				instanceToReturn.ExternalID = view.ExternalId.Text;
+				instanceToReturn.Priority = view.Priority.Selected;
+				instanceToReturn.Description = view.Description.Text;
+				instanceToReturn.OrganizationId = view.Org.Selected?.ID.Id;
 
-				instanceToReturn.ServiceOrderInfo.OrderContact.Clear();
-				view.Contact.CheckedOptions.Select(x => x.Value.ID.Id).ForEach(f => instanceToReturn.ServiceOrderInfo.OrderContact.Add(f));
-
-				if (!instanceToReturn.ServiceOrderItems.Any())
+				if (instanceToReturn.ContactIds == null)
 				{
-					instanceToReturn.ServiceOrderItems.Add(new ServiceOrderItemsSection());
+					instanceToReturn.ContactIds = new List<Guid>();
 				}
+
+				instanceToReturn.ContactIds.Clear();
+				view.Contact.CheckedOptions.Select(x => x.Value.ID.Id).ForEach(f => instanceToReturn.ContactIds.Add(f));
 
 				return instanceToReturn;
 			}
@@ -55,9 +67,11 @@
 
 		public string Name => String.IsNullOrWhiteSpace(view.TboxName.Text) ? view.TboxName.PlaceHolder : view.TboxName.Text;
 
-		public void LoadFromModel(int nr)
+		public void LoadFromModel()
 		{
-			view.TboxName.PlaceHolder = $"Order #{nr + 1:000}";
+			string defaultOrderId = GetDefaultOrderId(usedOrderIds);
+			view.TboxName.PlaceHolder = defaultOrderId;
+			view.OrderId.Text = defaultOrderId;
 
 			// Load correct types
 			view.Priority.SetOptions(
@@ -90,30 +104,32 @@
 			UpdateContactOnSelectedOrganization(view.Org.Selected);
 		}
 
-		public void LoadFromModel(ServiceOrdersInstance instance)
+		public void LoadFromModel(Models.ServiceOrder instance)
 		{
 			instanceToReturn = instance;
-			getServiceOrderItemLabels.RemoveAll(x => x == instance.ServiceOrderInfo.Name);
+			getServiceOrderItemLabels.RemoveAll(x => x == instance.Name);
 
 			// Load correct types
-			LoadFromModel(0);
+			LoadFromModel();
 
 			view.BtnAdd.Text = "Edit Service Order";
-			view.TboxName.Text = instance.ServiceOrderInfo.Name;
+			view.TboxName.Text = instance.Name;
+			view.TboxName.PlaceHolder = instance.OrderId;
+			view.OrderId.Text = instance.OrderId;
 
-			if (instance.ServiceOrderInfo.Priority.HasValue)
+			if (instance.Priority.HasValue)
 			{
-				view.Priority.Selected = instance.ServiceOrderInfo.Priority.Value;
+				view.Priority.Selected = instance.Priority.Value;
 			}
 
-			if (instance.ServiceOrderInfo.RelatedOrganization.HasValue && view.Org.Options.Any(x => x.Value?.ID.Id == instance.ServiceOrderInfo.RelatedOrganization.Value))
+			if (instance.OrganizationId.HasValue && view.Org.Options.Any(x => x.Value?.ID.Id == instance.OrganizationId.Value))
 			{
-				view.Org.Selected = view.Org.Options.First(x => x.Value?.ID.Id == instance.ServiceOrderInfo.RelatedOrganization.Value).Value;
+				view.Org.Selected = view.Org.Options.First(x => x.Value?.ID.Id == instance.OrganizationId.Value).Value;
 			}
 
-			if (instance.ServiceOrderInfo.OrderContact.Any() && view.Contact.Options.Any(x => instance.ServiceOrderInfo.OrderContact.Contains(x.Value.ID.Id)))
+			if (instance.ContactIds.Any() && view.Contact.Options.Any(x => instance.ContactIds.Contains(x.Value.ID.Id)))
 			{
-				var checkedOptions = view.Contact.Options.Where(x => instance.ServiceOrderInfo.OrderContact.Contains(x.Value.ID.Id)).ToList();
+				var checkedOptions = view.Contact.Options.Where(x => instance.ContactIds.Contains(x.Value.ID.Id)).ToList();
 				foreach (Option<PeopleInstance> option in checkedOptions)
 				{
 					view.Contact.Check(option);
@@ -128,6 +144,13 @@
 			ok &= ValidateLabel(Name);
 
 			return ok;
+		}
+
+		private static string GetDefaultOrderId(List<string> usedOrderIds)
+		{
+			var maxServiceId = usedOrderIds.Select(label => Int32.TryParse(label.Split('-').Last(), out int res) ? res : 0).ToArray();
+			int newNumber = maxServiceId.Length > 0 ? maxServiceId.Max() : 0;
+			return $"ORDER-{newNumber + 1:000000}";
 		}
 
 		private void UpdateContactOnSelectedOrganization(OrganizationsInstance organizationsInstance)

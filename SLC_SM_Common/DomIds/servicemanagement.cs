@@ -8,7 +8,6 @@ namespace DomHelpers
 {
     using System;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Sections;
@@ -225,7 +224,6 @@ namespace DomHelpers
 {
     using System;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Sections;
 
@@ -402,7 +400,6 @@ namespace DomHelpers.SlcServicemanagement
 {
     using System;
     using System.ComponentModel;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Sections;
 
@@ -621,6 +618,7 @@ namespace DomHelpers.SlcServicemanagement
                 public static FieldDescriptorID RelatedOrganization { get; } = new FieldDescriptorID(new Guid("d0f0ea83-ce6f-4c5d-be6a-f30387a4a703"));
                 public static FieldDescriptorID ServiceCategory { get; } = new FieldDescriptorID(new Guid("1aba841d-3c8e-411d-9821-a9209c02e4c8"));
                 public static FieldDescriptorID ServiceConfigurationParameters { get; } = new FieldDescriptorID(new Guid("226d2c8b-544b-4ee2-aec6-093dc3c0e8fa"));
+                public static FieldDescriptorID ServiceID { get; } = new FieldDescriptorID(new Guid("17e449be-c41e-40d1-8844-a43c0d71119f"));
             }
 
             public static class ServiceItemRelationship
@@ -1631,7 +1629,6 @@ namespace DomHelpers.SlcServicemanagement
     using System;
     using System.Collections.Generic;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Messages;
 
@@ -2753,7 +2750,6 @@ namespace DomHelpers.SlcServicemanagement
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
-
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
     using Skyline.DataMiner.Net.Apps.Sections.Sections;
     using Skyline.DataMiner.Net.Messages;
@@ -4454,6 +4450,49 @@ namespace DomHelpers.SlcServicemanagement
         /// </list>
         /// </remarks>
         public IList<Guid> ServiceConfigurationParameters { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the ServiceID field of the DOM Instance.
+        /// </summary>
+        /// <remarks>
+        /// When retrieving the value:
+        /// <list type="bullet">
+        /// <item>If the field has been set, it will return the value.</item>
+        /// <item>If the field is not set it will return <see langword="null"/>.</item>
+        /// </list>
+        /// When setting the value:
+        /// <list type="bullet">
+        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+        /// </list>
+        /// </remarks>
+        public String ServiceID
+        {
+            get
+            {
+                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
+                if (wrapper != null)
+                {
+                    return (String)wrapper.Value;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
+                }
+                else
+                {
+                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID, (String)value);
+                }
+            }
+        }
 
         /// <inheritdoc />
         protected override Section InternalToSection()

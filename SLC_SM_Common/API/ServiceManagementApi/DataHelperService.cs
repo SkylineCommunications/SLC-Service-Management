@@ -16,56 +16,6 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 		{
 		}
 
-		public override List<Models.Service> Read()
-		{
-			var instances = _domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(_defId.Id))
-				.Select(x => new ServicesInstance(x))
-				.ToList();
-
-			var dataHelperServicePropertyValues = new DataHelperServicePropertyValues(_connection);
-			var serviceProperties = dataHelperServicePropertyValues.Read();
-			var dataHelperServiceConfigurations = new DataHelperServiceConfigurationValue(_connection);
-			var serviceConfigurations = dataHelperServiceConfigurations.Read();
-			var dataHelperServiceCategory = new DataHelperServiceCategory(_connection);
-			var serviceCategories = dataHelperServiceCategory.Read();
-
-			return instances.Select(
-					x => new Models.Service
-					{
-						ID = x.ID.Id,
-						Name = x.ServiceInfo.ServiceName,
-						Description = x.ServiceInfo.Description,
-						StartTime = x.ServiceInfo.ServiceStartTime,
-						EndTime = x.ServiceInfo.ServiceEndTime,
-						Icon = x.ServiceInfo.Icon,
-						Category = serviceCategories.Find(c => c.ID == x.ServiceInfo.ServiceCategory),
-						ServiceSpecificationId = x.ServiceInfo.ServiceSpecifcation,
-						OrganizationId = x.ServiceInfo.RelatedOrganization,
-						Properties = serviceProperties.Find(p => p.ID == x.ServiceInfo.ServiceProperties) ?? new Models.ServicePropertyValues { Values = new List<Models.ServicePropertyValue>() },
-						Configurations = serviceConfigurations.Where(p => x.ServiceInfo.ServiceConfigurationParameters.Contains(p.ID)).ToList(),
-						ServiceItems = x.ServiceItems.Select(s => new Models.ServiceItem
-						{
-							ID = s.ServiceItemID ?? 1,
-							Label = s.Label ?? String.Empty,
-							Type = s.ServiceItemType ?? SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking,
-							Script = s.ServiceItemScript ?? String.Empty,
-							DefinitionReference = s.DefinitionReference ?? String.Empty,
-							ImplementationReference = s.ImplementationReference ?? String.Empty,
-						})
-							.Where(s => !String.IsNullOrEmpty(s.Label))
-							.ToList(),
-						ServiceItemsRelationships = x.ServiceItemRelationship.Select(r => new Models.ServiceItemRelationShip
-						{
-							ParentServiceItem = r.ParentServiceItem,
-							ParentServiceItemInterfaceId = r.ParentServiceItemInterfaceID,
-							ChildServiceItem = r.ChildServiceItem,
-							ChildServiceItemInterfaceId = r.ChildServiceItemInterfaceID,
-							Type = r.Type,
-						}).ToList(),
-					})
-				.ToList();
-		}
-
 		public override Guid CreateOrUpdate(Models.Service item)
 		{
 			DomInstance domInstance = New(item.ID);
@@ -78,6 +28,7 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 			var instance = new ServicesInstance(domInstance);
 			instance.ServiceInfo.ServiceName = item.Name;
 			instance.ServiceInfo.Description = item.Description;
+			instance.ServiceInfo.ServiceID = item.ServiceID;
 			instance.ServiceInfo.ServiceStartTime = item.StartTime;
 			instance.ServiceInfo.ServiceEndTime = item.EndTime;
 			instance.ServiceInfo.ServiceProperties = item.Properties?.ID;
@@ -156,15 +107,90 @@ namespace SLC_SM_Common.API.ServiceManagementApi
 			return CreateOrUpdateInstance(instance);
 		}
 
+		public override List<Models.Service> Read()
+		{
+			var instances = _domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(_defId.Id))
+				.Select(x => new ServicesInstance(x))
+				.ToList();
+
+			var dataHelperServicePropertyValues = new DataHelperServicePropertyValues(_connection);
+			var serviceProperties = dataHelperServicePropertyValues.Read();
+			var dataHelperServiceConfigurations = new DataHelperServiceConfigurationValue(_connection);
+			var serviceConfigurations = dataHelperServiceConfigurations.Read();
+			var dataHelperServiceCategory = new DataHelperServiceCategory(_connection);
+			var serviceCategories = dataHelperServiceCategory.Read();
+
+			return instances.Select(
+					x => new Models.Service
+					{
+						ID = x.ID.Id,
+						Name = x.ServiceInfo.ServiceName,
+						ServiceID = x.ServiceInfo.ServiceID,
+						Description = x.ServiceInfo.Description,
+						StartTime = x.ServiceInfo.ServiceStartTime,
+						EndTime = x.ServiceInfo.ServiceEndTime,
+						Icon = x.ServiceInfo.Icon,
+						Category = serviceCategories.Find(c => c.ID == x.ServiceInfo.ServiceCategory),
+						ServiceSpecificationId = x.ServiceInfo.ServiceSpecifcation,
+						OrganizationId = x.ServiceInfo.RelatedOrganization,
+						Properties = serviceProperties.Find(p => p.ID == x.ServiceInfo.ServiceProperties) ?? new Models.ServicePropertyValues { Values = new List<Models.ServicePropertyValue>() },
+						Configurations = serviceConfigurations.Where(p => x.ServiceInfo.ServiceConfigurationParameters.Contains(p.ID)).ToList(),
+						ServiceItems = x.ServiceItems.Select(
+								s => new Models.ServiceItem
+								{
+									ID = s.ServiceItemID ?? 1,
+									Label = s.Label ?? String.Empty,
+									Type = s.ServiceItemType ?? SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking,
+									Script = s.ServiceItemScript ?? String.Empty,
+									DefinitionReference = s.DefinitionReference ?? String.Empty,
+									ImplementationReference = s.ImplementationReference ?? String.Empty,
+								})
+							.Where(s => !String.IsNullOrEmpty(s.Label))
+							.ToList(),
+						ServiceItemsRelationships = x.ServiceItemRelationship.Select(
+								r => new Models.ServiceItemRelationShip
+								{
+									ParentServiceItem = r.ParentServiceItem,
+									ParentServiceItemInterfaceId = r.ParentServiceItemInterfaceID,
+									ChildServiceItem = r.ChildServiceItem,
+									ChildServiceItemInterfaceId = r.ChildServiceItemInterfaceID,
+									Type = r.Type,
+								})
+							.ToList(),
+					})
+				.ToList();
+		}
+
 		public override bool TryDelete(Models.Service item)
 		{
-			bool b = TryDelete(item.Properties.ID);
-			foreach (var config in item.Configurations)
+			bool b = true;
+
+			if (item.Properties != null)
 			{
-				b &= TryDelete(config.ID);
+				b &= TryDelete(item.Properties.ID);
+			}
+
+			if (item.Configurations != null)
+			{
+				foreach (var config in item.Configurations)
+				{
+					b &= TryDelete(config.ID);
+				}
 			}
 
 			return b && TryDelete(item.ID);
+		}
+
+		public string UniqueServiceId()
+		{
+			return UniqueServiceId(Read());
+		}
+
+		public string UniqueServiceId(List<Models.Service> services)
+		{
+			var serviceIds = services.Where(x => x?.ServiceID != null).Select(x => Int32.TryParse(x.ServiceID.Split('-').Last(), out int res) ? res : 0).ToArray();
+			int max = serviceIds.Length > 0 ? serviceIds.Max() : 0;
+			return $"SERVICE-{max + 1:00000}";
 		}
 	}
 }

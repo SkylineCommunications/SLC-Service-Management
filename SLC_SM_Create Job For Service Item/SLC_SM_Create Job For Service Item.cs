@@ -30,22 +30,22 @@ Skyline Communications.
 
 Any inquiries can be addressed to:
 
-	Skyline Communications NV
-	Ambachtenstraat 33
-	B-8870 Izegem
-	Belgium
-	Tel.	: +32 51 31 35 69
-	Fax.	: +32 51 31 01 29
-	E-mail	: info@skyline.be
-	Web		: www.skyline.be
-	Contact	: Ben Vandenberghe
+    Skyline Communications NV
+    Ambachtenstraat 33
+    B-8870 Izegem
+    Belgium
+    Tel.    : +32 51 31 35 69
+    Fax.    : +32 51 31 01 29
+    E-mail    : info@skyline.be
+    Web        : www.skyline.be
+    Contact    : Ben Vandenberghe
 
 ****************************************************************************
 Revision History:
 
-DATE		VERSION		AUTHOR			COMMENTS
+DATE        VERSION        AUTHOR            COMMENTS
 
-13/03/2025	1.0.0.1		RME, Skyline	Initial version
+13/03/2025    1.0.0.1        RME, Skyline    Initial version
 ****************************************************************************
 */
 namespace SLCSMCreateJobForServiceItem
@@ -53,8 +53,11 @@ namespace SLCSMCreateJobForServiceItem
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers.SlcServicemanagement;
+
 	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -97,7 +100,7 @@ namespace SLCSMCreateJobForServiceItem
 			}
 			catch (Exception e)
 			{
-				engine.ExitFail("Run|Something went wrong: " + e);
+				engine.ExitFail("Something went wrong:\r\n" + e.Message);
 			}
 		}
 
@@ -187,7 +190,7 @@ namespace SLCSMCreateJobForServiceItem
 
 			if (sendToJobHandler.HasException)
 			{
-				sendToJobHandler.ExceptionInfo.Throw();
+				engine.ExitFail(sendToJobHandler.ExceptionInfo.SourceException.Message);
 				return;
 			}
 

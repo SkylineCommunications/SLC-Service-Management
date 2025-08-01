@@ -14,34 +14,38 @@
 		public ServiceView(IEngine engine) : base(engine)
 		{
 			Title = "Manage Service";
-			MinWidth = Defaults.DialogMinWidth;
 
 			int row = 0;
-			AddWidget(new Label("Service Details") { Style = TextStyle.Heading }, row, 0);
+			AddWidget(LblServiceId, row, 0);
+			AddWidget(ServiceId, row, 1);
 			AddWidget(LblName, ++row, 0);
-			AddWidget(TboxName, row, 1);
-			AddWidget(ErrorName, row, 2);
+			AddWidget(TboxName, row, 1, 1, 2);
+			AddWidget(ErrorName, row, 3);
 
 			AddWidget(LblServiceCategory, ++row, 0);
-			AddWidget(ServiceCategory, row, 1);
+			AddWidget(ServiceCategory, row, 1, 1, 2);
 
 			AddWidget(LblSpecification, ++row, 0);
-			AddWidget(Specs, row, 1);
+			AddWidget(Specs, row, 1, 1, 2);
 
 			AddWidget(LblOrganization, ++row, 0);
-			AddWidget(Organizations, row, 1);
+			AddWidget(Organizations, row, 1, 1, 2);
 
 			AddWidget(LblStart, ++row, 0);
-			AddWidget(Start, row, 1);
-			AddWidget(ErrorStart, row, 2);
+			AddWidget(Start, row, 1, 1, 2);
+			AddWidget(ErrorStart, row, 3);
 			AddWidget(LblEnd, ++row, 0);
-			AddWidget(End, row, 1);
-			AddWidget(IndefiniteRuntime, row, 2);
+			AddWidget(End, row, 1, 1, 2);
+			AddWidget(IndefiniteRuntime, row, 3);
 
 			AddWidget(new WhiteSpace(), ++row, 0);
-			AddWidget(BtnCancel, ++row, 0);
-			AddWidget(BtnAdd, row, 1);
+			AddWidget(BtnAdd, ++row, 1);
+			AddWidget(BtnCancel, row, 2);
 		}
+
+		public Label LblServiceId { get; } = new Label("Service ID");
+
+		public Label ServiceId { get; } = new Label();
 
 		public Label LblName { get; } = new Label("Name");
 
@@ -91,6 +95,6 @@
 
 		public CheckBox IndefiniteRuntime { get; } = new CheckBox("Indefinite (no end time)") { IsChecked = false };
 
-		public Button BtnAdd { get; } = new Button("Create Service Inventory Item");
+		public Button BtnAdd { get; } = new Button("Create") { Style = ButtonStyle.CallToAction };
 	}
 }

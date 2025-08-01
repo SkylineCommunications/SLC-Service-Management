@@ -15,7 +15,7 @@
 
 		public Label TitleDetails { get; } = new Label("Service Configuration Details") { Style = TextStyle.Heading };
 
-		public Button BtnUpdate { get; } = new Button("Update");
+		public Button BtnUpdate { get; } = new Button("Update") { Style = ButtonStyle.CallToAction };
 
 		public Button BtnCancel { get; } = new Button("Cancel");
 

@@ -20,7 +20,7 @@
 
 		public Section Options { get; } = new Section();
 
-		public Button BtnApply { get; } = new Button("Apply Updates");
+		public Button BtnApply { get; } = new Button("Apply Updates") { Style = ButtonStyle.CallToAction };
 
 		public Button BtnReturn { get; } = new Button("Return");
 	}

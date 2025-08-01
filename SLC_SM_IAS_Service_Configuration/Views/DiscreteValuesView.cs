@@ -17,6 +17,6 @@
 
 		public CheckBoxList<Models.DiscreteValue> Options { get; } = new CheckBoxList<Models.DiscreteValue>();
 
-		public Button BtnApply { get; } = new Button("Apply Selection");
+		public Button BtnApply { get; } = new Button("Apply Selection") { Style = ButtonStyle.CallToAction };
 	}
 }

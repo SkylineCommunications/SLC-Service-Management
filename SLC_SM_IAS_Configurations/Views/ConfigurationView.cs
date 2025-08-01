@@ -13,7 +13,7 @@
 			MinWidth = Defaults.DialogMinWidth;
 		}
 
-		public Button BtnUpdate { get; } = new Button("Save Changes");
+		public Button BtnUpdate { get; } = new Button("Save Changes") { Style = ButtonStyle.CallToAction };
 
 		public Button BtnCancel { get; } = new Button("Cancel Changes");
 	}
