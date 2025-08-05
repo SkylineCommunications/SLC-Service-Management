@@ -30,56 +30,51 @@ Skyline Communications.
 
 Any inquiries can be addressed to:
 
-    Skyline Communications NV
-    Ambachtenstraat 33
-    B-8870 Izegem
-    Belgium
-    Tel.    : +32 51 31 35 69
-    Fax.    : +32 51 31 01 29
-    E-mail    : info@skyline.be
-    Web        : www.skyline.be
-    Contact    : Ben Vandenberghe
+	Skyline Communications NV
+	Ambachtenstraat 33
+	B-8870 Izegem
+	Belgium
+	Tel.	: +32 51 31 35 69
+	Fax.	: +32 51 31 01 29
+	E-mail	: info@skyline.be
+	Web		: www.skyline.be
+	Contact	: Ben Vandenberghe
 
 ****************************************************************************
 Revision History:
 
-DATE        VERSION        AUTHOR            COMMENTS
+DATE		VERSION		AUTHOR			COMMENTS
 
-13/03/2025    1.0.0.1	   XXX, Skyline    Initial version
+05/08/2025	1.0.0.1		RME, Skyline	Initial version
 ****************************************************************************
 */
-namespace SLC_SM_Delete_Service_1
+
+namespace SLCSMDemo
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
 
 	using DomHelpers.SlcServicemanagement;
 
 	using Library;
 
-	using Newtonsoft.Json;
-
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
 	/// <summary>
-	///     Represents a DataMiner Automation script.
+	/// Represents a DataMiner Automation script.
 	/// </summary>
 	public class Script
 	{
-		private IEngine _engine;
-
 		/// <summary>
-		///     The script entry point.
+		/// The script entry point.
 		/// </summary>
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public void Run(IEngine engine)
 		{
 			try
 			{
-				_engine = engine;
-				RunSafe();
+				RunSafe(engine);
 			}
 			catch (ScriptAbortException)
 			{
@@ -100,27 +95,22 @@ namespace SLC_SM_Delete_Service_1
 			}
 			catch (Exception e)
 			{
-				engine.ExitFail(e.Message);
+				engine.ExitFail("Run|Something went wrong: " + e);
 			}
 		}
 
-		private void RunSafe()
+		private void RunSafe(IEngine engine)
 		{
-			string domIdRaw = _engine.GetScriptParam("DOM ID").Value;
-			Guid domId = JsonConvert.DeserializeObject<List<Guid>>(domIdRaw).FirstOrDefault();
-			if (domId == Guid.Empty)
-			{
-				throw new InvalidOperationException("No DOM ID provided as input to the script");
-			}
+			string categoryType = "Channel";
+			string categoryName = "ARD";
 
-			var repo = new Repo(Engine.SLNetRaw);
+			var dataHelpers = new DataHelpersServiceManagement(Engine.SLNetRaw);
 
-			var service = repo.Services.Read(ServicesInstanceExposers.Guid.Equal(domId)).FirstOrDefault();
-			if (service != null)
-			{
-				_engine.GenerateInformation($"Service that will be removed: {service.ID}/{service.Name}");
-				repo.Services.TryDelete(service);
-			}
+			var categoryToMatch = dataHelpers.ServiceCategories.Read().Find(x => x.Type == categoryType && x.Name == categoryName)
+				?? throw new InvalidOperationException($"No Category found matching '{categoryType}-{categoryName}'");
+
+			var services = dataHelpers.Services.Read(ServicesInstanceExposers.ServiceInfoSection.ServiceCategory.Equal(categoryToMatch));
+			engine.GenerateInformation($"Service(s) found:\r\n{String.Join(Environment.NewLine, services.Select(s => $"{s.Name} ({s.ID})"))}");
 		}
 	}
 }

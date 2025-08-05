@@ -108,6 +108,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_Create Job For Servi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_IAS_Add Service Specification", "SLC_SM_IAS_Add Service Specification\SLC_SM_IAS_Add Service Specification.csproj", "{608D68AA-FD45-4EA3-994B-416940857DAF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SLC_SM_Demo", "SLC_SM_Demo\SLC_SM_Demo.csproj", "{459E3392-EFAB-4783-936B-AD0DF45C062E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -286,6 +288,10 @@ Global
 		{608D68AA-FD45-4EA3-994B-416940857DAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{608D68AA-FD45-4EA3-994B-416940857DAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{608D68AA-FD45-4EA3-994B-416940857DAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{459E3392-EFAB-4783-936B-AD0DF45C062E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{459E3392-EFAB-4783-936B-AD0DF45C062E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{459E3392-EFAB-4783-936B-AD0DF45C062E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{459E3392-EFAB-4783-936B-AD0DF45C062E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -334,6 +340,7 @@ Global
 		{7C5D27F4-9438-420C-BE5F-2CDC5FD8E94B} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
 		{BDB8E965-5C24-D442-19FF-0F4085E32A6D} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
 		{608D68AA-FD45-4EA3-994B-416940857DAF} = {7B54F701-23CF-40FB-B16E-65F702079BF6}
+		{459E3392-EFAB-4783-936B-AD0DF45C062E} = {5B35FE04-DC17-46DA-A887-CFCFF55E5058}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {38C318B5-7814-41CC-9BA6-DC5069897881}

@@ -167,7 +167,7 @@ namespace GetServiceItemRelationshipMultisection
 		{
 			return new GQIRow(new[]
 			{
-				new GQICell { Value = r.ID.Id.ToString() },
+				new GQICell { Value = r.SectionID.Id.ToString() },
 				new GQICell { Value = r.Type },
 				new GQICell { Value = r.ChildServiceItem },
 				new GQICell { Value = r.ParentServiceItem },

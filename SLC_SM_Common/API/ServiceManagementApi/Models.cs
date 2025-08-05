@@ -6,8 +6,14 @@ namespace SLC_SM_Common.API
 
 	using DomHelpers.SlcServicemanagement;
 
+	using Skyline.DataMiner.Net.IManager.Objects;
+	using Skyline.DataMiner.Net.Ticketing;
+
 	namespace ServiceManagementApi
 	{
+		using Skyline.DataMiner.Net.Messages.SLDataGateway;
+		using Skyline.DataMiner.SDM;
+
 		public static class Models
 		{
 			public class ServiceSpecification
@@ -157,13 +163,24 @@ namespace SLC_SM_Common.API
 				public bool ExposeAtServiceOrder { get; set; }
 			}
 
-			public class ServiceCategory
+			public class ServiceCategory : IEquatable<ServiceCategory>
 			{
 				public Guid ID { get; set; }
 
 				public string Name { get; set; }
 
 				public string Type { get; set; }
+
+				public bool Equals(ServiceCategory other)
+				{
+					if (other == null && ID == Guid.Empty) { return true; }
+
+					return other?.ID == ID;
+				}
+
+				public override bool Equals(object obj) => Equals(obj as ServiceCategory);
+
+				public override int GetHashCode() => ID.GetHashCode();
 			}
 
 			public class Service

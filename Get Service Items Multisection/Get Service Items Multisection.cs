@@ -141,7 +141,7 @@ namespace Get_ServiceItemsMultipleSections_1
 					new GQICell { Value = item.ServiceItemScript ?? String.Empty },
 					new GQICell { Value = item.ImplementationReference ?? String.Empty },
 					new GQICell { Value = GetImplementationRefName(item.ImplementationReference) },
-					new GQICell { Value = item.ID.Id.ToString() },
+					new GQICell { Value = item.SectionID.Id.ToString() },
 				});
 		}
 

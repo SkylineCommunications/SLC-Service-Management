@@ -973,7 +973,7 @@ namespace DomHelpers.SlcPeople_Organizations
     /// Represents a wrapper class for accessing a RoleInstance DOM instance.
     /// The <see cref="RoleInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
     /// </summary>
-    public partial class RoleInstance : DomInstanceBase
+    public partial class RoleInstance : DomInstanceBase	
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RoleInstance"/> class. Creates an empty <see cref="RoleInstance"/> instance with default settings.

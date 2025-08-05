@@ -9,6 +9,7 @@ namespace DomHelpers
     using System;
     using System.Linq;
     using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+    using Skyline.DataMiner.Net.ManagerStore;
     using Skyline.DataMiner.Net.Messages;
     using Skyline.DataMiner.Net.Sections;
 
@@ -21,14 +22,14 @@ namespace DomHelpers
         protected DomInstanceBase(DomDefinitionId definitionId)
         {
             if (definitionId == null)
-                throw new ArgumentNullException("definitionId");
+                throw new ArgumentNullException(nameof(definitionId));
             domInstance = new DomInstance{DomDefinitionId = definitionId};
         }
 
         protected DomInstanceBase(DomDefinitionId definitionId, Guid id)
         {
             if (definitionId == null)
-                throw new ArgumentNullException("definitionId");
+                throw new ArgumentNullException(nameof(definitionId));
             if (id == Guid.Empty)
                 throw new ArgumentException("The id cannot be an empty guid", nameof(id));
             domInstance = new DomInstance{ID = new DomInstanceId(id)
@@ -38,7 +39,7 @@ namespace DomHelpers
         protected DomInstanceBase(DomInstance domInstance)
         {
             if (domInstance == null)
-                throw new ArgumentNullException("domInstance");
+                throw new ArgumentNullException(nameof(domInstance));
             this.domInstance = domInstance;
         }
 
@@ -98,6 +99,63 @@ namespace DomHelpers
         }
 
         protected DomInstance domInstance { get; set; }
+
+        /// <summary>
+        /// Gets the datetime when the DOM Instance was created in UTC.
+        /// </summary>
+        public DateTime? CreatedAt
+        {
+            get
+            {
+                var createdAt = ((ITrackCreatedAt)domInstance).CreatedAt;
+                if (createdAt == null)
+                    return null;
+                else
+                    return createdAt.ToUniversalTime();
+            }
+        }
+
+        /// <summary>
+        /// Gets the user that created the DOM Instance.
+        /// </summary>
+        public string CreatedBy
+        {
+            get
+            {
+                return ((ITrackCreatedBy)domInstance).CreatedBy;
+            }
+        }
+
+        /// <summary>
+        /// Gets the datetime when the DOM Instance was last modified in UTC.
+        /// </summary>
+        public DateTime? LastModified
+        {
+            get
+            {
+                var lastModified = ((ITrackLastModified)domInstance).LastModified;
+                if (lastModified == null)
+                    return null;
+                else
+                    return lastModified.ToUniversalTime();
+            }
+        }
+
+        /// <summary>
+        /// Gets the user that last modified the DOM Instance.
+        /// </summary>
+        public string LastModifiedBy
+        {
+            get
+            {
+                return ((ITrackLastModifiedBy)domInstance).LastModifiedBy;
+            }
+        }
+
+        public static implicit operator DomInstanceId(DomInstanceBase instance)
+        {
+            return instance.ID;
+        }
 
         public static implicit operator DomInstance(DomInstanceBase instance)
         {
@@ -222,173 +280,174 @@ namespace DomHelpers
 //------------------------------------------------------------------------------
 namespace DomHelpers
 {
-    using System;
-    using System.Linq;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Sections;
+	using System;
+	using System.Linq;
 
-    public abstract class DomSectionBase : IEquatable<DomSectionBase>
-    {
-        protected Section section;
-        protected DomSectionBase(SectionDefinitionID id)
-        {
-            if (id == null)
-                throw new ArgumentNullException("id");
-            this.section = new Section(id);
-            AfterLoad();
-        }
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Sections;
 
-        protected DomSectionBase(SectionDefinition definition)
-        {
-            if (definition == null)
-                throw new ArgumentNullException("definition");
-            this.section = new Section(definition);
-            AfterLoad();
-        }
+	public abstract class DomSectionBase : IEquatable<DomSectionBase>
+	{
+		protected Section section;
+		protected DomSectionBase(SectionDefinitionID id)
+		{
+			if (id == null)
+				throw new ArgumentNullException(nameof(id));
+			this.section = new Section(id);
+			AfterLoad();
+		}
 
-        protected DomSectionBase(Section section, SectionDefinitionID id)
-        {
-            if (section == null)
-                throw new ArgumentNullException("section");
-            if (section.SectionDefinitionID == null)
-            {
-                throw new ArgumentException("The given section doesn't have a valid SectionDefinitionId.", nameof(section));
-            }
+		protected DomSectionBase(SectionDefinition definition)
+		{
+			if (definition == null)
+				throw new ArgumentNullException(nameof(definition));
+			this.section = new Section(definition);
+			AfterLoad();
+		}
 
-            if (!section.SectionDefinitionID.Equals(id))
-            {
-                throw new ArgumentException($"The given section, is not of type '{nameof(id)}'", nameof(section));
-            }
+		protected DomSectionBase(Section section, SectionDefinitionID id)
+		{
+			if (section == null)
+				throw new ArgumentNullException(nameof(section));
+			if (section.SectionDefinitionID == null)
+			{
+				throw new ArgumentException("The given section doesn't have a valid SectionDefinitionId.", nameof(section));
+			}
 
-            this.section = section;
-            AfterLoad();
-        }
+			if (!section.SectionDefinitionID.Equals(id))
+			{
+				throw new ArgumentException($"The given section, is not of type '{nameof(id)}'", nameof(section));
+			}
 
-        /// <summary>
-        /// Gets the section's ID.
-        /// </summary>
-        public SectionID ID
-        {
-            get
-            {
-                return section.ID;
-            }
-        }
+			this.section = section;
+			AfterLoad();
+		}
 
-        /// <summary>
-        /// Gets the section's Section Definition ID.
-        /// </summary>
-        public SectionDefinitionID SectionDefinitionID
-        {
-            get
-            {
-                return section.SectionDefinitionID;
-            }
-        }
+		/// <summary>
+		/// Gets the section's ID.
+		/// </summary>
+		public SectionID SectionID
+		{
+			get
+			{
+				return section.ID;
+			}
+		}
 
-        /// <summary>
-        /// Gets a value indicating whether the section is empty.
-        /// </summary>
-        /// <value>
-        /// <see langword="true"/> if the section doesn't contains any field values, otherwise, <see langword="false"/>.
-        /// </value>
-        public bool IsEmpty
-        {
-            get
-            {
-                return !section.FieldValues.Any();
-            }
-        }
+		/// <summary>
+		/// Gets the section's Section Definition ID.
+		/// </summary>
+		public SectionDefinitionID SectionDefinitionID
+		{
+			get
+			{
+				return section.SectionDefinitionID;
+			}
+		}
 
-        public static implicit operator SectionDefinitionID(DomSectionBase sectionBase)
-        {
-            return sectionBase.section.SectionDefinitionID;
-        }
+		/// <summary>
+		/// Gets a value indicating whether the section is empty.
+		/// </summary>
+		/// <value>
+		/// <see langword="true"/> if the section doesn't contains any field values, otherwise, <see langword="false"/>.
+		/// </value>
+		public bool IsEmpty
+		{
+			get
+			{
+				return !section.FieldValues.Any();
+			}
+		}
 
-        public static implicit operator SectionDefinition(DomSectionBase sectionBase)
-        {
-            return sectionBase.section.GetSectionDefinition();
-        }
+		public static implicit operator SectionDefinitionID(DomSectionBase sectionBase)
+		{
+			return sectionBase.section.SectionDefinitionID;
+		}
 
-        public static bool operator ==(DomSectionBase left, DomSectionBase right)
-        {
-            if (left is null)
-            {
-                return right is null;
-            }
+		public static implicit operator SectionDefinition(DomSectionBase sectionBase)
+		{
+			return sectionBase.section.GetSectionDefinition();
+		}
 
-            return left.Equals(right);
-        }
+		public static bool operator ==(DomSectionBase left, DomSectionBase right)
+		{
+			if (left is null)
+			{
+				return right is null;
+			}
 
-        public static bool operator !=(DomSectionBase left, DomSectionBase right)
-        {
-            return !(left == right);
-        }
+			return left.Equals(right);
+		}
 
-        public override string ToString()
-        {
-            return $"{this.section.SectionDefinitionID}";
-        }
+		public static bool operator !=(DomSectionBase left, DomSectionBase right)
+		{
+			return !(left == right);
+		}
 
-        /// <summary>
-        /// Optional method that runs at the end of the constructor.
-        /// </summary>
-        protected virtual void AfterLoad()
-        {
-        }
+		public override string ToString()
+		{
+			return $"{this.section.SectionDefinitionID}";
+		}
 
-        public virtual Section ToSection()
-        {
-            BeforeToSection();
-            var section = InternalToSection();
-            AfterToSection();
-            return section;
-        }
+		/// <summary>
+		/// Optional method that runs at the end of the constructor.
+		/// </summary>
+		protected virtual void AfterLoad()
+		{
+		}
 
-        /// <summary>
-        /// Optional method that runs before the internal ToSection method runs.
-        /// </summary>
-        protected virtual void BeforeToSection()
-        {
-        }
+		public virtual Section ToSection()
+		{
+			BeforeToSection();
+			var section = InternalToSection();
+			AfterToSection();
+			return section;
+		}
 
-        protected virtual Section InternalToSection()
-        {
-            return this.section;
-        }
+		/// <summary>
+		/// Optional method that runs before the internal ToSection method runs.
+		/// </summary>
+		protected virtual void BeforeToSection()
+		{
+		}
 
-        /// <summary>
-        /// Optional method that runs after the internal ToSection method runs.
-        /// </summary>
-        protected virtual void AfterToSection()
-        {
-        }
+		protected virtual Section InternalToSection()
+		{
+			return this.section;
+		}
 
-        public override int GetHashCode()
-        {
-            return this.ID.GetHashCode();
-        }
+		/// <summary>
+		/// Optional method that runs after the internal ToSection method runs.
+		/// </summary>
+		protected virtual void AfterToSection()
+		{
+		}
 
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as DomSectionBase);
-        }
+		public override int GetHashCode()
+		{
+			return this.SectionID.GetHashCode();
+		}
 
-        public bool Equals(DomSectionBase other)
-        {
-            if (other is null)
-            {
-                return false;
-            }
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as DomSectionBase);
+		}
 
-            if (ReferenceEquals(this, other))
-            {
-                return true;
-            }
+		public bool Equals(DomSectionBase other)
+		{
+			if (other is null)
+			{
+				return false;
+			}
 
-            return this.ID.Equals(other.ID);
-        }
-    }
+			if (ReferenceEquals(this, other))
+			{
+				return true;
+			}
+
+			return this.SectionID.Equals(other.SectionID);
+		}
+	}
 }
 //------------------------------------------------------------------------------
 // <auto-generated>
@@ -398,1225 +457,1226 @@ namespace DomHelpers
 //------------------------------------------------------------------------------
 namespace DomHelpers.SlcServicemanagement
 {
-    using System;
-    using System.ComponentModel;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Sections;
+	using System;
+	using System.ComponentModel;
 
-    public static class SlcServicemanagementIds
-    {
-        public const string ModuleId = "(slc)servicemanagement";
-        public static class Enums
-        {
-            public static class Serviceorderpriority
-            {
-                public const string High = "High";
-                public const string Medium = "Medium";
-                public const string Low = "Low";
-                public static string ToValue(ServiceorderpriorityEnum @enum)
-                {
-                    switch (@enum)
-                    {
-                        case ServiceorderpriorityEnum.High:
-                            return High;
-                        case ServiceorderpriorityEnum.Medium:
-                            return Medium;
-                        case ServiceorderpriorityEnum.Low:
-                            return Low;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                    }
-                }
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Sections;
 
-                public static ServiceorderpriorityEnum ToEnum(string s)
-                {
-                    switch (s)
-                    {
-                        case High:
-                            return ServiceorderpriorityEnum.High;
-                        case Medium:
-                            return ServiceorderpriorityEnum.Medium;
-                        case Low:
-                            return ServiceorderpriorityEnum.Low;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                    }
-                }
-            }
+	public static class SlcServicemanagementIds
+	{
+		public const string ModuleId = "(slc)servicemanagement";
+		public static class Enums
+		{
+			public static class Serviceorderpriority
+			{
+				public const string High = "High";
+				public const string Medium = "Medium";
+				public const string Low = "Low";
+				public static string ToValue(ServiceorderpriorityEnum @enum)
+				{
+					switch (@enum)
+					{
+						case ServiceorderpriorityEnum.High:
+							return High;
+						case ServiceorderpriorityEnum.Medium:
+							return Medium;
+						case ServiceorderpriorityEnum.Low:
+							return Low;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+					}
+				}
 
-            public enum ServiceorderpriorityEnum
-            {
-                High,
-                Medium,
-                Low
-            }
+				public static ServiceorderpriorityEnum ToEnum(string s)
+				{
+					switch (s)
+					{
+						case High:
+							return ServiceorderpriorityEnum.High;
+						case Medium:
+							return ServiceorderpriorityEnum.Medium;
+						case Low:
+							return ServiceorderpriorityEnum.Low;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+					}
+				}
+			}
 
-            public static class Type
-            {
-                public const string String = "String";
-                public const string Discrete = "Discrete";
-                public static string ToValue(TypeEnum @enum)
-                {
-                    switch (@enum)
-                    {
-                        case TypeEnum.String:
-                            return String;
-                        case TypeEnum.Discrete:
-                            return Discrete;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                    }
-                }
+			public enum ServiceorderpriorityEnum
+			{
+				High,
+				Medium,
+				Low
+			}
 
-                public static TypeEnum ToEnum(string s)
-                {
-                    switch (s)
-                    {
-                        case String:
-                            return TypeEnum.String;
-                        case Discrete:
-                            return TypeEnum.Discrete;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                    }
-                }
-            }
+			public static class Type
+			{
+				public const string String = "String";
+				public const string Discrete = "Discrete";
+				public static string ToValue(TypeEnum @enum)
+				{
+					switch (@enum)
+					{
+						case TypeEnum.String:
+							return String;
+						case TypeEnum.Discrete:
+							return Discrete;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+					}
+				}
 
-            public enum TypeEnum
-            {
-                String,
-                Discrete
-            }
+				public static TypeEnum ToEnum(string s)
+				{
+					switch (s)
+					{
+						case String:
+							return TypeEnum.String;
+						case Discrete:
+							return TypeEnum.Discrete;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+					}
+				}
+			}
 
-            public static class Serviceitemtypes
-            {
-                public const string Workflow = "Workflow";
-                public const string SRMBooking = "SRM Booking";
-                public static string ToValue(ServiceitemtypesEnum @enum)
-                {
-                    switch (@enum)
-                    {
-                        case ServiceitemtypesEnum.Workflow:
-                            return Workflow;
-                        case ServiceitemtypesEnum.SRMBooking:
-                            return SRMBooking;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                    }
-                }
+			public enum TypeEnum
+			{
+				String,
+				Discrete
+			}
 
-                public static ServiceitemtypesEnum ToEnum(string s)
-                {
-                    switch (s)
-                    {
-                        case Workflow:
-                            return ServiceitemtypesEnum.Workflow;
-                        case SRMBooking:
-                            return ServiceitemtypesEnum.SRMBooking;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                    }
-                }
-            }
+			public static class Serviceitemtypes
+			{
+				public const string Workflow = "Workflow";
+				public const string SRMBooking = "SRM Booking";
+				public static string ToValue(ServiceitemtypesEnum @enum)
+				{
+					switch (@enum)
+					{
+						case ServiceitemtypesEnum.Workflow:
+							return Workflow;
+						case ServiceitemtypesEnum.SRMBooking:
+							return SRMBooking;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+					}
+				}
 
-            public enum ServiceitemtypesEnum
-            {
-                Workflow,
-                SRMBooking
-            }
-        }
+				public static ServiceitemtypesEnum ToEnum(string s)
+				{
+					switch (s)
+					{
+						case Workflow:
+							return ServiceitemtypesEnum.Workflow;
+						case SRMBooking:
+							return ServiceitemtypesEnum.SRMBooking;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+					}
+				}
+			}
 
-        public static class Sections
-        {
-            public static class ServicePropertyValue
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("79a261bf-f7b3-45e6-88f6-e0db12ab3bec"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID PropertyName { get; } = new FieldDescriptorID(new Guid("e4b41897-a6eb-452a-a6ad-88f11e9f9c22"));
-                public static FieldDescriptorID Value { get; } = new FieldDescriptorID(new Guid("fa59e22e-1ea6-49c2-b134-d42273134508"));
-                public static FieldDescriptorID Property { get; } = new FieldDescriptorID(new Guid("f8905e96-be94-48d2-9ebe-7bafee3c1224"));
-            }
+			public enum ServiceitemtypesEnum
+			{
+				Workflow,
+				SRMBooking
+			}
+		}
 
-            public static class ServiceConfigurationValue
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("b80c6b82-173f-485a-9b9c-328104d343ae"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("ef8d17a3-cb49-44ab-ac8d-8c1652de1e0b"));
-                public static FieldDescriptorID MandatoryAtServiceLevel { get; } = new FieldDescriptorID(new Guid("c1d5e2a0-668a-41bc-a58d-455497fe0f61"));
-            }
+		public static class Sections
+		{
+			public static class ServicePropertyValue
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("79a261bf-f7b3-45e6-88f6-e0db12ab3bec"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID PropertyName { get; } = new FieldDescriptorID(new Guid("e4b41897-a6eb-452a-a6ad-88f11e9f9c22"));
+				public static FieldDescriptorID Value { get; } = new FieldDescriptorID(new Guid("fa59e22e-1ea6-49c2-b134-d42273134508"));
+				public static FieldDescriptorID Property { get; } = new FieldDescriptorID(new Guid("f8905e96-be94-48d2-9ebe-7bafee3c1224"));
+			}
 
-            public static class DiscreteServicePropertyValueOptions
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("342bb39e-e8c2-4e82-9a97-606a942dca27"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID DiscreteValue { get; } = new FieldDescriptorID(new Guid("942259dc-1708-469b-8802-c9435f9a1abc"));
-            }
+			public static class ServiceConfigurationValue
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("b80c6b82-173f-485a-9b9c-328104d343ae"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("ef8d17a3-cb49-44ab-ac8d-8c1652de1e0b"));
+				public static FieldDescriptorID MandatoryAtServiceLevel { get; } = new FieldDescriptorID(new Guid("c1d5e2a0-668a-41bc-a58d-455497fe0f61"));
+			}
 
-            public static class ServiceOrderInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("c8811d15-3006-4478-a29f-f286fb935b46"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("ba13799a-c9b9-4f08-b825-cac8a487af6f"));
-                public static FieldDescriptorID ID { get; } = new FieldDescriptorID(new Guid("992825d2-778e-4f5f-8fb3-6429f032bdf9"));
-                public static FieldDescriptorID ExternalID { get; } = new FieldDescriptorID(new Guid("7abc051c-c694-4c06-8860-2e650af11eea"));
-                public static FieldDescriptorID Priority { get; } = new FieldDescriptorID(new Guid("3b0a1b22-9379-4d52-9eae-5308b5c7577f"));
-                public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("40fb0b38-0686-4e77-8e77-1a4c36c0e96c"));
-                public static FieldDescriptorID RelatedOrganization { get; } = new FieldDescriptorID(new Guid("b071ee6f-9a3f-44c9-a187-3a1a78a37a99"));
-                public static FieldDescriptorID OrderContact { get; } = new FieldDescriptorID(new Guid("eeeca81e-fc47-44dd-b089-05e61b324b37"));
-            }
+			public static class DiscreteServicePropertyValueOptions
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("342bb39e-e8c2-4e82-9a97-606a942dca27"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID DiscreteValue { get; } = new FieldDescriptorID(new Guid("942259dc-1708-469b-8802-c9435f9a1abc"));
+			}
 
-            public static class ServiceOrderItemConfigurationValue
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("d53e7212-cddd-4594-b073-234a2b6c0e3f"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("f4c875fd-640b-4fc1-a60a-1edb52faf3b2"));
-                public static FieldDescriptorID MandatoryAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("81e5f226-1e25-4702-927a-7ea2985e19e1"));
-            }
+			public static class ServiceOrderInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("c8811d15-3006-4478-a29f-f286fb935b46"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("ba13799a-c9b9-4f08-b825-cac8a487af6f"));
+				public static FieldDescriptorID ID { get; } = new FieldDescriptorID(new Guid("992825d2-778e-4f5f-8fb3-6429f032bdf9"));
+				public static FieldDescriptorID ExternalID { get; } = new FieldDescriptorID(new Guid("7abc051c-c694-4c06-8860-2e650af11eea"));
+				public static FieldDescriptorID Priority { get; } = new FieldDescriptorID(new Guid("3b0a1b22-9379-4d52-9eae-5308b5c7577f"));
+				public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("40fb0b38-0686-4e77-8e77-1a4c36c0e96c"));
+				public static FieldDescriptorID RelatedOrganization { get; } = new FieldDescriptorID(new Guid("b071ee6f-9a3f-44c9-a187-3a1a78a37a99"));
+				public static FieldDescriptorID OrderContact { get; } = new FieldDescriptorID(new Guid("eeeca81e-fc47-44dd-b089-05e61b324b37"));
+			}
 
-            public static class ServiceSpecificationConfigurationValue
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("a4e2826c-f334-4b1e-9704-162c6fd5f2ec"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("92fda825-193c-4380-962e-86aa7c61f7f0"));
-                public static FieldDescriptorID MandatoryAtServiceLevel { get; } = new FieldDescriptorID(new Guid("ac2649ef-e73e-4252-a577-2d0ad083d21b"));
-                public static FieldDescriptorID ExposeAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("7c991cd6-08e9-4d78-8a55-457e9d3ffa18"));
-                public static FieldDescriptorID MandatoryAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("94cacd16-7b27-4f57-a8fe-669c79d8268e"));
-            }
+			public static class ServiceOrderItemConfigurationValue
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("d53e7212-cddd-4594-b073-234a2b6c0e3f"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("f4c875fd-640b-4fc1-a60a-1edb52faf3b2"));
+				public static FieldDescriptorID MandatoryAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("81e5f226-1e25-4702-927a-7ea2985e19e1"));
+			}
 
-            public static class ServiceSpecificationInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("42fa2357-bed3-4456-b2d2-9a2b8f61fbab"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID SpecificationName { get; } = new FieldDescriptorID(new Guid("08908eda-eb78-4d7f-a462-71769da596a3"));
-                public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("7a60d6b5-c37f-4250-810f-b62a501892b9"));
-                public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("ee3f4719-8930-476a-b91a-ef98476fb170"));
-                public static FieldDescriptorID ServiceProperties { get; } = new FieldDescriptorID(new Guid("2690b1d8-602e-4f6d-8bad-1e197ee8535a"));
-                public static FieldDescriptorID ServiceConfiguration { get; } = new FieldDescriptorID(new Guid("82c72b36-640b-414d-b4da-9c3fd5fe54fb"));
-                public static FieldDescriptorID ServiceSpecificationConfigurationParameters { get; } = new FieldDescriptorID(new Guid("62f7f7af-8452-46da-9f3d-4efd0f5d8b9a"));
-            }
+			public static class ServiceSpecificationConfigurationValue
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("a4e2826c-f334-4b1e-9704-162c6fd5f2ec"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("92fda825-193c-4380-962e-86aa7c61f7f0"));
+				public static FieldDescriptorID MandatoryAtServiceLevel { get; } = new FieldDescriptorID(new Guid("ac2649ef-e73e-4252-a577-2d0ad083d21b"));
+				public static FieldDescriptorID ExposeAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("7c991cd6-08e9-4d78-8a55-457e9d3ffa18"));
+				public static FieldDescriptorID MandatoryAtServiceOrderLevel { get; } = new FieldDescriptorID(new Guid("94cacd16-7b27-4f57-a8fe-669c79d8268e"));
+			}
 
-            public static class ServicePropertyValueInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("77cfd79c-7b47-41aa-a476-1be4c0738537"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID LinkedObjectID { get; } = new FieldDescriptorID(new Guid("c3052330-1f04-4906-bd34-cbb56141526a"));
-                public static FieldDescriptorID LinkedObjectDOMModule { get; } = new FieldDescriptorID(new Guid("681ed31b-7d57-4140-9250-c6ed78b38c16"));
-            }
+			public static class ServiceSpecificationInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("42fa2357-bed3-4456-b2d2-9a2b8f61fbab"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID SpecificationName { get; } = new FieldDescriptorID(new Guid("08908eda-eb78-4d7f-a462-71769da596a3"));
+				public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("7a60d6b5-c37f-4250-810f-b62a501892b9"));
+				public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("ee3f4719-8930-476a-b91a-ef98476fb170"));
+				public static FieldDescriptorID ServiceProperties { get; } = new FieldDescriptorID(new Guid("2690b1d8-602e-4f6d-8bad-1e197ee8535a"));
+				public static FieldDescriptorID ServiceConfiguration { get; } = new FieldDescriptorID(new Guid("82c72b36-640b-414d-b4da-9c3fd5fe54fb"));
+				public static FieldDescriptorID ServiceSpecificationConfigurationParameters { get; } = new FieldDescriptorID(new Guid("62f7f7af-8452-46da-9f3d-4efd0f5d8b9a"));
+			}
 
-            public static class ServiceInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("fd700f84-430c-4626-af7e-052d93b89323"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ServiceName { get; } = new FieldDescriptorID(new Guid("7a8c2a26-016d-4067-bf60-7b2ff07157cb"));
-                public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("5e5f1745-5888-494f-8d7a-da9cdb7bc07f"));
-                public static FieldDescriptorID ServiceStartTime { get; } = new FieldDescriptorID(new Guid("c3b2346e-f383-4420-85e1-107457ed4137"));
-                public static FieldDescriptorID ServiceEndTime { get; } = new FieldDescriptorID(new Guid("a1f0a928-fe05-4f47-bbde-e3f88d5ffb6b"));
-                public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("bbb840cf-045f-4581-9103-c0ed696e4f08"));
-                public static FieldDescriptorID ServiceSpecifcation { get; } = new FieldDescriptorID(new Guid("20003807-2368-456f-b1ad-c8eb2e5c98e9"));
-                public static FieldDescriptorID ServiceProperties { get; } = new FieldDescriptorID(new Guid("48751f65-2740-4965-b178-acede95cb3e6"));
-                public static FieldDescriptorID ServiceConfiguration { get; } = new FieldDescriptorID(new Guid("040d827c-c713-461f-9f05-aeb3ef15f7de"));
-                public static FieldDescriptorID RelatedOrganization { get; } = new FieldDescriptorID(new Guid("d0f0ea83-ce6f-4c5d-be6a-f30387a4a703"));
-                public static FieldDescriptorID ServiceCategory { get; } = new FieldDescriptorID(new Guid("1aba841d-3c8e-411d-9821-a9209c02e4c8"));
-                public static FieldDescriptorID ServiceConfigurationParameters { get; } = new FieldDescriptorID(new Guid("226d2c8b-544b-4ee2-aec6-093dc3c0e8fa"));
-                public static FieldDescriptorID ServiceID { get; } = new FieldDescriptorID(new Guid("17e449be-c41e-40d1-8844-a43c0d71119f"));
-            }
+			public static class ServicePropertyValueInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("77cfd79c-7b47-41aa-a476-1be4c0738537"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID LinkedObjectID { get; } = new FieldDescriptorID(new Guid("c3052330-1f04-4906-bd34-cbb56141526a"));
+				public static FieldDescriptorID LinkedObjectDOMModule { get; } = new FieldDescriptorID(new Guid("681ed31b-7d57-4140-9250-c6ed78b38c16"));
+			}
 
-            public static class ServiceItemRelationship
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("e1ccbd9b-fffb-448f-a6c5-de47e842be9b"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("0b00add5-1d5d-41b5-a3f9-98bb8219085b"));
-                public static FieldDescriptorID ParentServiceItem { get; } = new FieldDescriptorID(new Guid("33c36905-b227-4fcd-8866-a523c61fd5d9"));
-                public static FieldDescriptorID ChildServiceItem { get; } = new FieldDescriptorID(new Guid("32a96c4e-7553-464a-822b-b8ab2620bfef"));
-                public static FieldDescriptorID ParentServiceItemInterfaceID { get; } = new FieldDescriptorID(new Guid("f205a562-cbb7-416c-a04d-dd0d99e90d1a"));
-                public static FieldDescriptorID ChildServiceItemInterfaceID { get; } = new FieldDescriptorID(new Guid("2c4ba097-9481-41e9-bf03-8bee166fc589"));
-            }
+			public static class ServiceInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("fd700f84-430c-4626-af7e-052d93b89323"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ServiceName { get; } = new FieldDescriptorID(new Guid("7a8c2a26-016d-4067-bf60-7b2ff07157cb"));
+				public static FieldDescriptorID Description { get; } = new FieldDescriptorID(new Guid("5e5f1745-5888-494f-8d7a-da9cdb7bc07f"));
+				public static FieldDescriptorID ServiceStartTime { get; } = new FieldDescriptorID(new Guid("c3b2346e-f383-4420-85e1-107457ed4137"));
+				public static FieldDescriptorID ServiceEndTime { get; } = new FieldDescriptorID(new Guid("a1f0a928-fe05-4f47-bbde-e3f88d5ffb6b"));
+				public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("bbb840cf-045f-4581-9103-c0ed696e4f08"));
+				public static FieldDescriptorID ServiceSpecifcation { get; } = new FieldDescriptorID(new Guid("20003807-2368-456f-b1ad-c8eb2e5c98e9"));
+				public static FieldDescriptorID ServiceProperties { get; } = new FieldDescriptorID(new Guid("48751f65-2740-4965-b178-acede95cb3e6"));
+				public static FieldDescriptorID ServiceConfiguration { get; } = new FieldDescriptorID(new Guid("040d827c-c713-461f-9f05-aeb3ef15f7de"));
+				public static FieldDescriptorID RelatedOrganization { get; } = new FieldDescriptorID(new Guid("d0f0ea83-ce6f-4c5d-be6a-f30387a4a703"));
+				public static FieldDescriptorID ServiceCategory { get; } = new FieldDescriptorID(new Guid("1aba841d-3c8e-411d-9821-a9209c02e4c8"));
+				public static FieldDescriptorID ServiceConfigurationParameters { get; } = new FieldDescriptorID(new Guid("226d2c8b-544b-4ee2-aec6-093dc3c0e8fa"));
+				public static FieldDescriptorID ServiceID { get; } = new FieldDescriptorID(new Guid("17e449be-c41e-40d1-8844-a43c0d71119f"));
+			}
 
-            public static class ServiceConfigurationParametersValues
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("e1265675-b4a0-48ac-b19d-72ed90ed32e7"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Label { get; } = new FieldDescriptorID(new Guid("a8b810db-407f-49ff-8adf-82bfa6ffc624"));
-                public static FieldDescriptorID ServiceParameterID { get; } = new FieldDescriptorID(new Guid("12c3d339-d108-4b69-8f16-55e603c11749"));
-                public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("119eba63-7d1d-48cc-af12-eb8b07d58a93"));
-                public static FieldDescriptorID Mandatory { get; } = new FieldDescriptorID(new Guid("ed22bde7-b7d6-4687-b45b-711080d67913"));
-                public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("3e2a95b2-84a2-4993-ad8d-4ab2fa268437"));
-                public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("0e6868b5-caaa-44bf-b4ba-00fb03f2f0b0"));
-            }
+			public static class ServiceItemRelationship
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("e1ccbd9b-fffb-448f-a6c5-de47e842be9b"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("0b00add5-1d5d-41b5-a3f9-98bb8219085b"));
+				public static FieldDescriptorID ParentServiceItem { get; } = new FieldDescriptorID(new Guid("33c36905-b227-4fcd-8866-a523c61fd5d9"));
+				public static FieldDescriptorID ChildServiceItem { get; } = new FieldDescriptorID(new Guid("32a96c4e-7553-464a-822b-b8ab2620bfef"));
+				public static FieldDescriptorID ParentServiceItemInterfaceID { get; } = new FieldDescriptorID(new Guid("f205a562-cbb7-416c-a04d-dd0d99e90d1a"));
+				public static FieldDescriptorID ChildServiceItemInterfaceID { get; } = new FieldDescriptorID(new Guid("2c4ba097-9481-41e9-bf03-8bee166fc589"));
+			}
 
-            public static class ServiceCategoryInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("8a0d1812-2749-48b9-b673-3bc35c660976"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("797eeb46-c5fa-4461-aa30-5c83f0a997ee"));
-                public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("dc3a4293-a40a-483f-80a8-1f337474d244"));
-                public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("ca45e379-91dd-42db-a06d-f09588aadd7f"));
-            }
+			public static class ServiceConfigurationParametersValues
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("e1265675-b4a0-48ac-b19d-72ed90ed32e7"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Label { get; } = new FieldDescriptorID(new Guid("a8b810db-407f-49ff-8adf-82bfa6ffc624"));
+				public static FieldDescriptorID ServiceParameterID { get; } = new FieldDescriptorID(new Guid("12c3d339-d108-4b69-8f16-55e603c11749"));
+				public static FieldDescriptorID ProfileParameterID { get; } = new FieldDescriptorID(new Guid("119eba63-7d1d-48cc-af12-eb8b07d58a93"));
+				public static FieldDescriptorID Mandatory { get; } = new FieldDescriptorID(new Guid("ed22bde7-b7d6-4687-b45b-711080d67913"));
+				public static FieldDescriptorID StringValue { get; } = new FieldDescriptorID(new Guid("3e2a95b2-84a2-4993-ad8d-4ab2fa268437"));
+				public static FieldDescriptorID DoubleValue { get; } = new FieldDescriptorID(new Guid("0e6868b5-caaa-44bf-b4ba-00fb03f2f0b0"));
+			}
 
-            public static class ServicePropertyInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("6bd03e43-d23a-43f9-8d1d-f81c7e713556"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("a98fbb45-fb12-4d22-b150-a27be7a7997b"));
-                public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("5a1fe68d-fd16-412f-b1c5-32f63d1f99fa"));
-            }
+			public static class ServiceCategoryInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("8a0d1812-2749-48b9-b673-3bc35c660976"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("797eeb46-c5fa-4461-aa30-5c83f0a997ee"));
+				public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("dc3a4293-a40a-483f-80a8-1f337474d244"));
+				public static FieldDescriptorID Icon { get; } = new FieldDescriptorID(new Guid("ca45e379-91dd-42db-a06d-f09588aadd7f"));
+			}
 
-            public static class ServiceOrderItems
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("b9041ff9-4f7f-4412-822f-18c218a5444d"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ServiceOrderItem { get; } = new FieldDescriptorID(new Guid("853d9a8c-09e3-4e75-b270-5ebf827e9bdf"));
-                public static FieldDescriptorID PriorityOrder { get; } = new FieldDescriptorID(new Guid("cad2201c-8663-4656-b53e-91babb984567"));
-            }
+			public static class ServicePropertyInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("6bd03e43-d23a-43f9-8d1d-f81c7e713556"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("a98fbb45-fb12-4d22-b150-a27be7a7997b"));
+				public static FieldDescriptorID Type { get; } = new FieldDescriptorID(new Guid("5a1fe68d-fd16-412f-b1c5-32f63d1f99fa"));
+			}
 
-            public static class ServiceItemConfigurationValue
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("7c442399-fc00-4bd0-ac91-705ed3afc606"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("64fef9b2-61da-44b1-8a98-1a73008ffce7"));
-                public static FieldDescriptorID WorkflowParamterReference { get; } = new FieldDescriptorID(new Guid("dc9f7ae5-8f95-4100-ad49-8053f9bc35e8"));
-            }
+			public static class ServiceOrderItems
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("b9041ff9-4f7f-4412-822f-18c218a5444d"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ServiceOrderItem { get; } = new FieldDescriptorID(new Guid("853d9a8c-09e3-4e75-b270-5ebf827e9bdf"));
+				public static FieldDescriptorID PriorityOrder { get; } = new FieldDescriptorID(new Guid("cad2201c-8663-4656-b53e-91babb984567"));
+			}
 
-            public static class ServiceOrderItemServiceInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("4501adfb-7c9f-423c-b449-73a46d32a46b"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID ServiceCategory { get; } = new FieldDescriptorID(new Guid("50d5611c-e27b-45a3-8767-d3140b101382"));
-                public static FieldDescriptorID ServiceSpecification { get; } = new FieldDescriptorID(new Guid("951f4359-97bf-4d90-b4ca-7fb3eab51aa1"));
-                public static FieldDescriptorID Service { get; } = new FieldDescriptorID(new Guid("cd7a33ff-d5f2-40de-910d-616a6e9b3ce2"));
-                public static FieldDescriptorID Properties { get; } = new FieldDescriptorID(new Guid("a0b3c4f9-f9bc-41ca-a480-fe4878de45b6"));
-                public static FieldDescriptorID Configuration { get; } = new FieldDescriptorID(new Guid("d8b3971c-6331-4aac-a556-9ff378d19070"));
-                public static FieldDescriptorID ServiceOrderItemConfigurations { get; } = new FieldDescriptorID(new Guid("d97aa318-daf2-4085-ac3f-991e53e2952d"));
-            }
+			public static class ServiceItemConfigurationValue
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("7c442399-fc00-4bd0-ac91-705ed3afc606"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ConfigurationParameterValue { get; } = new FieldDescriptorID(new Guid("64fef9b2-61da-44b1-8a98-1a73008ffce7"));
+				public static FieldDescriptorID WorkflowParamterReference { get; } = new FieldDescriptorID(new Guid("dc9f7ae5-8f95-4100-ad49-8053f9bc35e8"));
+			}
 
-            public static class ServiceItems
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("1ac7e347-20e5-4b2b-8838-5cb412e89427"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Label { get; } = new FieldDescriptorID(new Guid("24eeee19-8bef-44dc-be82-ef6c538d0f8d"));
-                public static FieldDescriptorID ServiceItemID { get; } = new FieldDescriptorID(new Guid("01c36e03-5baf-44f9-8bbb-f1e7383cc148"));
-                public static FieldDescriptorID ServiceItemType { get; } = new FieldDescriptorID(new Guid("8b3e1590-2eeb-4c2c-b249-dd61023a1b06"));
-                public static FieldDescriptorID DefinitionReference { get; } = new FieldDescriptorID(new Guid("30c7c421-7c97-4723-91e1-046ba1792ec8"));
-                public static FieldDescriptorID ServiceItemConfiguration { get; } = new FieldDescriptorID(new Guid("9a3144ee-794d-4ea9-8888-c06d9b4789ed"));
-                public static FieldDescriptorID ServiceItemScript { get; } = new FieldDescriptorID(new Guid("bfc7a72c-5e0d-4ffe-9c96-27f5e749d3fa"));
-                public static FieldDescriptorID ImplementationReference { get; } = new FieldDescriptorID(new Guid("8cedc78a-a23f-46c4-92a3-30393704f340"));
-            }
+			public static class ServiceOrderItemServiceInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("4501adfb-7c9f-423c-b449-73a46d32a46b"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID ServiceCategory { get; } = new FieldDescriptorID(new Guid("50d5611c-e27b-45a3-8767-d3140b101382"));
+				public static FieldDescriptorID ServiceSpecification { get; } = new FieldDescriptorID(new Guid("951f4359-97bf-4d90-b4ca-7fb3eab51aa1"));
+				public static FieldDescriptorID Service { get; } = new FieldDescriptorID(new Guid("cd7a33ff-d5f2-40de-910d-616a6e9b3ce2"));
+				public static FieldDescriptorID Properties { get; } = new FieldDescriptorID(new Guid("a0b3c4f9-f9bc-41ca-a480-fe4878de45b6"));
+				public static FieldDescriptorID Configuration { get; } = new FieldDescriptorID(new Guid("d8b3971c-6331-4aac-a556-9ff378d19070"));
+				public static FieldDescriptorID ServiceOrderItemConfigurations { get; } = new FieldDescriptorID(new Guid("d97aa318-daf2-4085-ac3f-991e53e2952d"));
+			}
 
-            public static class ServiceOrderItemInfo
-            {
-                public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("48b18c79-a682-4dc0-a60f-6986d181e987"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("34985cc6-5a53-4b84-a8d9-757bd8755a3b"));
-                public static FieldDescriptorID Action { get; } = new FieldDescriptorID(new Guid("27d6d8bc-fe39-48f5-873f-4a7386c8f250"));
-                public static FieldDescriptorID ServiceStartTime { get; } = new FieldDescriptorID(new Guid("0b97d054-a8a9-4bda-87be-0a057c74c6f2"));
-                public static FieldDescriptorID ServiceEndTime { get; } = new FieldDescriptorID(new Guid("9042ad90-787d-4dfa-9943-4a7438f8664d"));
-                public static FieldDescriptorID ServiceIndefiniteRuntime { get; } = new FieldDescriptorID(new Guid("61bac74e-c192-42a9-981f-a25971e4285e"));
-            }
-        }
+			public static class ServiceItems
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("1ac7e347-20e5-4b2b-8838-5cb412e89427"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Label { get; } = new FieldDescriptorID(new Guid("24eeee19-8bef-44dc-be82-ef6c538d0f8d"));
+				public static FieldDescriptorID ServiceItemID { get; } = new FieldDescriptorID(new Guid("01c36e03-5baf-44f9-8bbb-f1e7383cc148"));
+				public static FieldDescriptorID ServiceItemType { get; } = new FieldDescriptorID(new Guid("8b3e1590-2eeb-4c2c-b249-dd61023a1b06"));
+				public static FieldDescriptorID DefinitionReference { get; } = new FieldDescriptorID(new Guid("30c7c421-7c97-4723-91e1-046ba1792ec8"));
+				public static FieldDescriptorID ServiceItemConfiguration { get; } = new FieldDescriptorID(new Guid("9a3144ee-794d-4ea9-8888-c06d9b4789ed"));
+				public static FieldDescriptorID ServiceItemScript { get; } = new FieldDescriptorID(new Guid("bfc7a72c-5e0d-4ffe-9c96-27f5e749d3fa"));
+				public static FieldDescriptorID ImplementationReference { get; } = new FieldDescriptorID(new Guid("8cedc78a-a23f-46c4-92a3-30393704f340"));
+			}
 
-        public static class Definitions
-        {
-            public static DomDefinitionId ServiceOrders { get; } = new DomDefinitionId(new Guid("6f8233c7-114a-47c1-b0c8-8573f0a848b5"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceCategory { get; } = new DomDefinitionId(new Guid("aa627d77-d73e-4657-8d26-0970371acb9e"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceConfiguration { get; } = new DomDefinitionId(new Guid("f384fc4f-708b-46a1-9474-bf9fbbe358a7"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceSpecifications { get; } = new DomDefinitionId(new Guid("dbe96de4-ca9d-4eba-a06e-b089ec14ffca"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceOrderItemConfigurationValue { get; } = new DomDefinitionId(new Guid("5db8a463-780c-443a-83d5-5ea065057637"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceSpecificationConfigurationValue { get; } = new DomDefinitionId(new Guid("9732ab35-6469-49e8-908a-6da5624224ab"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceProperties { get; } = new DomDefinitionId(new Guid("689844f0-bbc3-430b-998a-33a0a8da7358"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServicePropertyValues { get; } = new DomDefinitionId(new Guid("3f3ba92f-45dc-45ef-b6ed-5b98e2d17a33"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId Services { get; } = new DomDefinitionId(new Guid("d50bac89-6629-4f3b-aff0-05a57cb7e70d"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceConfigurationValue { get; } = new DomDefinitionId(new Guid("44a7ac35-c686-4312-9fcd-400ab80e38dd"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceItemConfigurationValue { get; } = new DomDefinitionId(new Guid("ef207e58-c0a9-4898-ab99-d59b5fe1ba61"))
-            {ModuleId = "(slc)servicemanagement"};
-            public static DomDefinitionId ServiceOrderItems { get; } = new DomDefinitionId(new Guid("1480b788-4aff-4e2a-9ee0-ec55bb0f8912"))
-            {ModuleId = "(slc)servicemanagement"};
-        }
+			public static class ServiceOrderItemInfo
+			{
+				public static SectionDefinitionID Id { get; } = new SectionDefinitionID(new Guid("48b18c79-a682-4dc0-a60f-6986d181e987"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static FieldDescriptorID Name { get; } = new FieldDescriptorID(new Guid("34985cc6-5a53-4b84-a8d9-757bd8755a3b"));
+				public static FieldDescriptorID Action { get; } = new FieldDescriptorID(new Guid("27d6d8bc-fe39-48f5-873f-4a7386c8f250"));
+				public static FieldDescriptorID ServiceStartTime { get; } = new FieldDescriptorID(new Guid("0b97d054-a8a9-4bda-87be-0a057c74c6f2"));
+				public static FieldDescriptorID ServiceEndTime { get; } = new FieldDescriptorID(new Guid("9042ad90-787d-4dfa-9943-4a7438f8664d"));
+				public static FieldDescriptorID ServiceIndefiniteRuntime { get; } = new FieldDescriptorID(new Guid("61bac74e-c192-42a9-981f-a25971e4285e"));
+			}
+		}
 
-        public static class Behaviors
-        {
-            public static class Serviceorderitem_Behavior
-            {
-                public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("9e644aab-6b60-4cce-a901-520162077080"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static class Statuses
-                {
-                    public const string New = "06df5562-cd9b-4b0b-bd45-c58560a8b22a";
-                    public const string Acknowledged = "d917fc53-2638-4ab9-9ac6-651ec5312bac";
-                    public const string InProgress = "331dc1c2-1950-4c00-a4ae-0aba674a30e6";
-                    public const string Completed = "260a7073-e54e-4482-a8a7-2b4f2e49c42e";
-                    public const string Rejected = "6a01a480-4c38-4db7-b545-72ba05742a7e";
-                    public const string Failed = "7f13d019-29de-43cb-a510-ab2b2a77e785";
-                    public const string PartiallyFailed = "f8a8d853-faaf-401c-9865-71e314614023";
-                    public const string Held = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44";
-                    public const string Pending = "23f9fa75-32b8-4e4a-bd65-06a7344d1902";
-                    public const string AssessCancellation = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5";
-                    public const string PendingCancellation = "15d08c01-fe63-4d5f-8544-e5b4d66439f5";
-                    public const string Cancelled = "61b80d48-d555-462e-baae-a52b17c85ddb";
-                    public static string ToValue(StatusesEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case StatusesEnum.New:
-                                return New;
-                            case StatusesEnum.Acknowledged:
-                                return Acknowledged;
-                            case StatusesEnum.InProgress:
-                                return InProgress;
-                            case StatusesEnum.Completed:
-                                return Completed;
-                            case StatusesEnum.Rejected:
-                                return Rejected;
-                            case StatusesEnum.Failed:
-                                return Failed;
-                            case StatusesEnum.PartiallyFailed:
-                                return PartiallyFailed;
-                            case StatusesEnum.Held:
-                                return Held;
-                            case StatusesEnum.Pending:
-                                return Pending;
-                            case StatusesEnum.AssessCancellation:
-                                return AssessCancellation;
-                            case StatusesEnum.PendingCancellation:
-                                return PendingCancellation;
-                            case StatusesEnum.Cancelled:
-                                return Cancelled;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+		public static class Definitions
+		{
+			public static DomDefinitionId ServiceOrders { get; } = new DomDefinitionId(new Guid("6f8233c7-114a-47c1-b0c8-8573f0a848b5"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceCategory { get; } = new DomDefinitionId(new Guid("aa627d77-d73e-4657-8d26-0970371acb9e"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceConfiguration { get; } = new DomDefinitionId(new Guid("f384fc4f-708b-46a1-9474-bf9fbbe358a7"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceSpecifications { get; } = new DomDefinitionId(new Guid("dbe96de4-ca9d-4eba-a06e-b089ec14ffca"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceOrderItemConfigurationValue { get; } = new DomDefinitionId(new Guid("5db8a463-780c-443a-83d5-5ea065057637"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceSpecificationConfigurationValue { get; } = new DomDefinitionId(new Guid("9732ab35-6469-49e8-908a-6da5624224ab"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceProperties { get; } = new DomDefinitionId(new Guid("689844f0-bbc3-430b-998a-33a0a8da7358"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServicePropertyValues { get; } = new DomDefinitionId(new Guid("3f3ba92f-45dc-45ef-b6ed-5b98e2d17a33"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId Services { get; } = new DomDefinitionId(new Guid("d50bac89-6629-4f3b-aff0-05a57cb7e70d"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceConfigurationValue { get; } = new DomDefinitionId(new Guid("44a7ac35-c686-4312-9fcd-400ab80e38dd"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceItemConfigurationValue { get; } = new DomDefinitionId(new Guid("ef207e58-c0a9-4898-ab99-d59b5fe1ba61"))
+			{ ModuleId = "(slc)servicemanagement" };
+			public static DomDefinitionId ServiceOrderItems { get; } = new DomDefinitionId(new Guid("1480b788-4aff-4e2a-9ee0-ec55bb0f8912"))
+			{ ModuleId = "(slc)servicemanagement" };
+		}
 
-                    public static StatusesEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New:
-                                return StatusesEnum.New;
-                            case Acknowledged:
-                                return StatusesEnum.Acknowledged;
-                            case InProgress:
-                                return StatusesEnum.InProgress;
-                            case Completed:
-                                return StatusesEnum.Completed;
-                            case Rejected:
-                                return StatusesEnum.Rejected;
-                            case Failed:
-                                return StatusesEnum.Failed;
-                            case PartiallyFailed:
-                                return StatusesEnum.PartiallyFailed;
-                            case Held:
-                                return StatusesEnum.Held;
-                            case Pending:
-                                return StatusesEnum.Pending;
-                            case AssessCancellation:
-                                return StatusesEnum.AssessCancellation;
-                            case PendingCancellation:
-                                return StatusesEnum.PendingCancellation;
-                            case Cancelled:
-                                return StatusesEnum.Cancelled;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+		public static class Behaviors
+		{
+			public static class Serviceorderitem_Behavior
+			{
+				public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("9e644aab-6b60-4cce-a901-520162077080"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static class Statuses
+				{
+					public const string New = "06df5562-cd9b-4b0b-bd45-c58560a8b22a";
+					public const string Acknowledged = "d917fc53-2638-4ab9-9ac6-651ec5312bac";
+					public const string InProgress = "331dc1c2-1950-4c00-a4ae-0aba674a30e6";
+					public const string Completed = "260a7073-e54e-4482-a8a7-2b4f2e49c42e";
+					public const string Rejected = "6a01a480-4c38-4db7-b545-72ba05742a7e";
+					public const string Failed = "7f13d019-29de-43cb-a510-ab2b2a77e785";
+					public const string PartiallyFailed = "f8a8d853-faaf-401c-9865-71e314614023";
+					public const string Held = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44";
+					public const string Pending = "23f9fa75-32b8-4e4a-bd65-06a7344d1902";
+					public const string AssessCancellation = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5";
+					public const string PendingCancellation = "15d08c01-fe63-4d5f-8544-e5b4d66439f5";
+					public const string Cancelled = "61b80d48-d555-462e-baae-a52b17c85ddb";
+					public static string ToValue(StatusesEnum @enum)
+					{
+						switch (@enum)
+						{
+							case StatusesEnum.New:
+								return New;
+							case StatusesEnum.Acknowledged:
+								return Acknowledged;
+							case StatusesEnum.InProgress:
+								return InProgress;
+							case StatusesEnum.Completed:
+								return Completed;
+							case StatusesEnum.Rejected:
+								return Rejected;
+							case StatusesEnum.Failed:
+								return Failed;
+							case StatusesEnum.PartiallyFailed:
+								return PartiallyFailed;
+							case StatusesEnum.Held:
+								return Held;
+							case StatusesEnum.Pending:
+								return Pending;
+							case StatusesEnum.AssessCancellation:
+								return AssessCancellation;
+							case StatusesEnum.PendingCancellation:
+								return PendingCancellation;
+							case StatusesEnum.Cancelled:
+								return Cancelled;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum StatusesEnum
-                {
-                    New,
-                    Acknowledged,
-                    [Description("In Progress")]
-                    InProgress,
-                    Completed,
-                    Rejected,
-                    Failed,
-                    [Description("Partially Failed")]
-                    PartiallyFailed,
-                    Held,
-                    Pending,
-                    [Description("Assess Cancellation")]
-                    AssessCancellation,
-                    [Description("Pending Cancellation")]
-                    PendingCancellation,
-                    Cancelled
-                }
+					public static StatusesEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New:
+								return StatusesEnum.New;
+							case Acknowledged:
+								return StatusesEnum.Acknowledged;
+							case InProgress:
+								return StatusesEnum.InProgress;
+							case Completed:
+								return StatusesEnum.Completed;
+							case Rejected:
+								return StatusesEnum.Rejected;
+							case Failed:
+								return StatusesEnum.Failed;
+							case PartiallyFailed:
+								return StatusesEnum.PartiallyFailed;
+							case Held:
+								return StatusesEnum.Held;
+							case Pending:
+								return StatusesEnum.Pending;
+							case AssessCancellation:
+								return StatusesEnum.AssessCancellation;
+							case PendingCancellation:
+								return StatusesEnum.PendingCancellation;
+							case Cancelled:
+								return StatusesEnum.Cancelled;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Transitions
-                {
-                    public const string New_To_Acknowledged = "new_to_acknowledged";
-                    public const string New_To_Rejected = "new_to_rejected";
-                    public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
-                    public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
-                    public const string Inprogress_To_Completed = "inprogress_to_completed";
-                    public const string Inprogress_To_Failed = "inprogress_to_failed";
-                    public const string Inprogress_To_Partial = "inprogress_to_partial";
-                    public const string Inprogress_To_Held = "inprogress_to_held";
-                    public const string Inprogress_To_Pending = "inprogress_to_pending";
-                    public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
-                    public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
-                    public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
-                    public const string Held_To_Inprogress = "held_to_inprogress";
-                    public const string Assesscancellation_To_Held = "assesscancellation_to_held";
-                    public const string Assesscancellation_To_Pending = "assesscancellation_to_pending";
-                    public const string Held_To_Assesscancellation = "held_to_assesscancellation";
-                    public const string Pending_To_Inprogress = "pending_to_inprogress";
-                    public static string ToValue(TransitionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case TransitionsEnum.New_To_Acknowledged:
-                                return New_To_Acknowledged;
-                            case TransitionsEnum.New_To_Rejected:
-                                return New_To_Rejected;
-                            case TransitionsEnum.Acknowledged_To_Rejected:
-                                return Acknowledged_To_Rejected;
-                            case TransitionsEnum.Acknowledged_To_Inprogress:
-                                return Acknowledged_To_Inprogress;
-                            case TransitionsEnum.Inprogress_To_Completed:
-                                return Inprogress_To_Completed;
-                            case TransitionsEnum.Inprogress_To_Failed:
-                                return Inprogress_To_Failed;
-                            case TransitionsEnum.Inprogress_To_Partial:
-                                return Inprogress_To_Partial;
-                            case TransitionsEnum.Inprogress_To_Held:
-                                return Inprogress_To_Held;
-                            case TransitionsEnum.Inprogress_To_Pending:
-                                return Inprogress_To_Pending;
-                            case TransitionsEnum.Pending_To_Assesscancellation:
-                                return Pending_To_Assesscancellation;
-                            case TransitionsEnum.Assesscancellation_To_Pendingcancellation:
-                                return Assesscancellation_To_Pendingcancellation;
-                            case TransitionsEnum.Pendingcancellation_To_Cancelled:
-                                return Pendingcancellation_To_Cancelled;
-                            case TransitionsEnum.Held_To_Inprogress:
-                                return Held_To_Inprogress;
-                            case TransitionsEnum.Assesscancellation_To_Held:
-                                return Assesscancellation_To_Held;
-                            case TransitionsEnum.Assesscancellation_To_Pending:
-                                return Assesscancellation_To_Pending;
-                            case TransitionsEnum.Held_To_Assesscancellation:
-                                return Held_To_Assesscancellation;
-                            case TransitionsEnum.Pending_To_Inprogress:
-                                return Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum StatusesEnum
+				{
+					New,
+					Acknowledged,
+					[Description("In Progress")]
+					InProgress,
+					Completed,
+					Rejected,
+					Failed,
+					[Description("Partially Failed")]
+					PartiallyFailed,
+					Held,
+					Pending,
+					[Description("Assess Cancellation")]
+					AssessCancellation,
+					[Description("Pending Cancellation")]
+					PendingCancellation,
+					Cancelled
+				}
 
-                    public static TransitionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Acknowledged:
-                                return TransitionsEnum.New_To_Acknowledged;
-                            case New_To_Rejected:
-                                return TransitionsEnum.New_To_Rejected;
-                            case Acknowledged_To_Rejected:
-                                return TransitionsEnum.Acknowledged_To_Rejected;
-                            case Acknowledged_To_Inprogress:
-                                return TransitionsEnum.Acknowledged_To_Inprogress;
-                            case Inprogress_To_Completed:
-                                return TransitionsEnum.Inprogress_To_Completed;
-                            case Inprogress_To_Failed:
-                                return TransitionsEnum.Inprogress_To_Failed;
-                            case Inprogress_To_Partial:
-                                return TransitionsEnum.Inprogress_To_Partial;
-                            case Inprogress_To_Held:
-                                return TransitionsEnum.Inprogress_To_Held;
-                            case Inprogress_To_Pending:
-                                return TransitionsEnum.Inprogress_To_Pending;
-                            case Pending_To_Assesscancellation:
-                                return TransitionsEnum.Pending_To_Assesscancellation;
-                            case Assesscancellation_To_Pendingcancellation:
-                                return TransitionsEnum.Assesscancellation_To_Pendingcancellation;
-                            case Pendingcancellation_To_Cancelled:
-                                return TransitionsEnum.Pendingcancellation_To_Cancelled;
-                            case Held_To_Inprogress:
-                                return TransitionsEnum.Held_To_Inprogress;
-                            case Assesscancellation_To_Held:
-                                return TransitionsEnum.Assesscancellation_To_Held;
-                            case Assesscancellation_To_Pending:
-                                return TransitionsEnum.Assesscancellation_To_Pending;
-                            case Held_To_Assesscancellation:
-                                return TransitionsEnum.Held_To_Assesscancellation;
-                            case Pending_To_Inprogress:
-                                return TransitionsEnum.Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Transitions
+				{
+					public const string New_To_Acknowledged = "new_to_acknowledged";
+					public const string New_To_Rejected = "new_to_rejected";
+					public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
+					public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
+					public const string Inprogress_To_Completed = "inprogress_to_completed";
+					public const string Inprogress_To_Failed = "inprogress_to_failed";
+					public const string Inprogress_To_Partial = "inprogress_to_partial";
+					public const string Inprogress_To_Held = "inprogress_to_held";
+					public const string Inprogress_To_Pending = "inprogress_to_pending";
+					public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
+					public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
+					public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
+					public const string Held_To_Inprogress = "held_to_inprogress";
+					public const string Assesscancellation_To_Held = "assesscancellation_to_held";
+					public const string Assesscancellation_To_Pending = "assesscancellation_to_pending";
+					public const string Held_To_Assesscancellation = "held_to_assesscancellation";
+					public const string Pending_To_Inprogress = "pending_to_inprogress";
+					public static string ToValue(TransitionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case TransitionsEnum.New_To_Acknowledged:
+								return New_To_Acknowledged;
+							case TransitionsEnum.New_To_Rejected:
+								return New_To_Rejected;
+							case TransitionsEnum.Acknowledged_To_Rejected:
+								return Acknowledged_To_Rejected;
+							case TransitionsEnum.Acknowledged_To_Inprogress:
+								return Acknowledged_To_Inprogress;
+							case TransitionsEnum.Inprogress_To_Completed:
+								return Inprogress_To_Completed;
+							case TransitionsEnum.Inprogress_To_Failed:
+								return Inprogress_To_Failed;
+							case TransitionsEnum.Inprogress_To_Partial:
+								return Inprogress_To_Partial;
+							case TransitionsEnum.Inprogress_To_Held:
+								return Inprogress_To_Held;
+							case TransitionsEnum.Inprogress_To_Pending:
+								return Inprogress_To_Pending;
+							case TransitionsEnum.Pending_To_Assesscancellation:
+								return Pending_To_Assesscancellation;
+							case TransitionsEnum.Assesscancellation_To_Pendingcancellation:
+								return Assesscancellation_To_Pendingcancellation;
+							case TransitionsEnum.Pendingcancellation_To_Cancelled:
+								return Pendingcancellation_To_Cancelled;
+							case TransitionsEnum.Held_To_Inprogress:
+								return Held_To_Inprogress;
+							case TransitionsEnum.Assesscancellation_To_Held:
+								return Assesscancellation_To_Held;
+							case TransitionsEnum.Assesscancellation_To_Pending:
+								return Assesscancellation_To_Pending;
+							case TransitionsEnum.Held_To_Assesscancellation:
+								return Held_To_Assesscancellation;
+							case TransitionsEnum.Pending_To_Inprogress:
+								return Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum TransitionsEnum
-                {
-                    New_To_Acknowledged,
-                    New_To_Rejected,
-                    Acknowledged_To_Rejected,
-                    Acknowledged_To_Inprogress,
-                    Inprogress_To_Completed,
-                    Inprogress_To_Failed,
-                    Inprogress_To_Partial,
-                    Inprogress_To_Held,
-                    Inprogress_To_Pending,
-                    Pending_To_Assesscancellation,
-                    Assesscancellation_To_Pendingcancellation,
-                    Pendingcancellation_To_Cancelled,
-                    Held_To_Inprogress,
-                    Assesscancellation_To_Held,
-                    Assesscancellation_To_Pending,
-                    Held_To_Assesscancellation,
-                    Pending_To_Inprogress
-                }
+					public static TransitionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Acknowledged:
+								return TransitionsEnum.New_To_Acknowledged;
+							case New_To_Rejected:
+								return TransitionsEnum.New_To_Rejected;
+							case Acknowledged_To_Rejected:
+								return TransitionsEnum.Acknowledged_To_Rejected;
+							case Acknowledged_To_Inprogress:
+								return TransitionsEnum.Acknowledged_To_Inprogress;
+							case Inprogress_To_Completed:
+								return TransitionsEnum.Inprogress_To_Completed;
+							case Inprogress_To_Failed:
+								return TransitionsEnum.Inprogress_To_Failed;
+							case Inprogress_To_Partial:
+								return TransitionsEnum.Inprogress_To_Partial;
+							case Inprogress_To_Held:
+								return TransitionsEnum.Inprogress_To_Held;
+							case Inprogress_To_Pending:
+								return TransitionsEnum.Inprogress_To_Pending;
+							case Pending_To_Assesscancellation:
+								return TransitionsEnum.Pending_To_Assesscancellation;
+							case Assesscancellation_To_Pendingcancellation:
+								return TransitionsEnum.Assesscancellation_To_Pendingcancellation;
+							case Pendingcancellation_To_Cancelled:
+								return TransitionsEnum.Pendingcancellation_To_Cancelled;
+							case Held_To_Inprogress:
+								return TransitionsEnum.Held_To_Inprogress;
+							case Assesscancellation_To_Held:
+								return TransitionsEnum.Assesscancellation_To_Held;
+							case Assesscancellation_To_Pending:
+								return TransitionsEnum.Assesscancellation_To_Pending;
+							case Held_To_Assesscancellation:
+								return TransitionsEnum.Held_To_Assesscancellation;
+							case Pending_To_Inprogress:
+								return TransitionsEnum.Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Actions
-                {
-                    public const string New_To_Acknowledged = "new_to_acknowledged";
-                    public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
-                    public const string Inprogress_To_Completed = "inprogress_to_completed";
-                    public const string New_To_Rejected = "new_to_rejected";
-                    public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
-                    public const string Inprogess_To_Failed = "inprogess_to_failed";
-                    public const string Inprogress_To_Partial = "inprogress_to_partial";
-                    public const string Inprogress_To_Held = "inprogress_to_held";
-                    public const string Inprogress_To_Pending = "inprogress_to_pending";
-                    public const string Held_To_Assesscancellation = "held_to_assesscancellation";
-                    public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
-                    public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
-                    public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
-                    public const string Held_To_Inprogress = "held_to_inprogress";
-                    public const string Pending_To_Inprogress = "pending_to_inprogress";
-                    public static string ToValue(ActionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case ActionsEnum.New_To_Acknowledged:
-                                return New_To_Acknowledged;
-                            case ActionsEnum.Acknowledged_To_Inprogress:
-                                return Acknowledged_To_Inprogress;
-                            case ActionsEnum.Inprogress_To_Completed:
-                                return Inprogress_To_Completed;
-                            case ActionsEnum.New_To_Rejected:
-                                return New_To_Rejected;
-                            case ActionsEnum.Acknowledged_To_Rejected:
-                                return Acknowledged_To_Rejected;
-                            case ActionsEnum.Inprogess_To_Failed:
-                                return Inprogess_To_Failed;
-                            case ActionsEnum.Inprogress_To_Partial:
-                                return Inprogress_To_Partial;
-                            case ActionsEnum.Inprogress_To_Held:
-                                return Inprogress_To_Held;
-                            case ActionsEnum.Inprogress_To_Pending:
-                                return Inprogress_To_Pending;
-                            case ActionsEnum.Held_To_Assesscancellation:
-                                return Held_To_Assesscancellation;
-                            case ActionsEnum.Assesscancellation_To_Pendingcancellation:
-                                return Assesscancellation_To_Pendingcancellation;
-                            case ActionsEnum.Pendingcancellation_To_Cancelled:
-                                return Pendingcancellation_To_Cancelled;
-                            case ActionsEnum.Pending_To_Assesscancellation:
-                                return Pending_To_Assesscancellation;
-                            case ActionsEnum.Held_To_Inprogress:
-                                return Held_To_Inprogress;
-                            case ActionsEnum.Pending_To_Inprogress:
-                                return Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum TransitionsEnum
+				{
+					New_To_Acknowledged,
+					New_To_Rejected,
+					Acknowledged_To_Rejected,
+					Acknowledged_To_Inprogress,
+					Inprogress_To_Completed,
+					Inprogress_To_Failed,
+					Inprogress_To_Partial,
+					Inprogress_To_Held,
+					Inprogress_To_Pending,
+					Pending_To_Assesscancellation,
+					Assesscancellation_To_Pendingcancellation,
+					Pendingcancellation_To_Cancelled,
+					Held_To_Inprogress,
+					Assesscancellation_To_Held,
+					Assesscancellation_To_Pending,
+					Held_To_Assesscancellation,
+					Pending_To_Inprogress
+				}
 
-                    public static ActionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Acknowledged:
-                                return ActionsEnum.New_To_Acknowledged;
-                            case Acknowledged_To_Inprogress:
-                                return ActionsEnum.Acknowledged_To_Inprogress;
-                            case Inprogress_To_Completed:
-                                return ActionsEnum.Inprogress_To_Completed;
-                            case New_To_Rejected:
-                                return ActionsEnum.New_To_Rejected;
-                            case Acknowledged_To_Rejected:
-                                return ActionsEnum.Acknowledged_To_Rejected;
-                            case Inprogess_To_Failed:
-                                return ActionsEnum.Inprogess_To_Failed;
-                            case Inprogress_To_Partial:
-                                return ActionsEnum.Inprogress_To_Partial;
-                            case Inprogress_To_Held:
-                                return ActionsEnum.Inprogress_To_Held;
-                            case Inprogress_To_Pending:
-                                return ActionsEnum.Inprogress_To_Pending;
-                            case Held_To_Assesscancellation:
-                                return ActionsEnum.Held_To_Assesscancellation;
-                            case Assesscancellation_To_Pendingcancellation:
-                                return ActionsEnum.Assesscancellation_To_Pendingcancellation;
-                            case Pendingcancellation_To_Cancelled:
-                                return ActionsEnum.Pendingcancellation_To_Cancelled;
-                            case Pending_To_Assesscancellation:
-                                return ActionsEnum.Pending_To_Assesscancellation;
-                            case Held_To_Inprogress:
-                                return ActionsEnum.Held_To_Inprogress;
-                            case Pending_To_Inprogress:
-                                return ActionsEnum.Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Actions
+				{
+					public const string New_To_Acknowledged = "new_to_acknowledged";
+					public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
+					public const string Inprogress_To_Completed = "inprogress_to_completed";
+					public const string New_To_Rejected = "new_to_rejected";
+					public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
+					public const string Inprogess_To_Failed = "inprogess_to_failed";
+					public const string Inprogress_To_Partial = "inprogress_to_partial";
+					public const string Inprogress_To_Held = "inprogress_to_held";
+					public const string Inprogress_To_Pending = "inprogress_to_pending";
+					public const string Held_To_Assesscancellation = "held_to_assesscancellation";
+					public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
+					public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
+					public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
+					public const string Held_To_Inprogress = "held_to_inprogress";
+					public const string Pending_To_Inprogress = "pending_to_inprogress";
+					public static string ToValue(ActionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case ActionsEnum.New_To_Acknowledged:
+								return New_To_Acknowledged;
+							case ActionsEnum.Acknowledged_To_Inprogress:
+								return Acknowledged_To_Inprogress;
+							case ActionsEnum.Inprogress_To_Completed:
+								return Inprogress_To_Completed;
+							case ActionsEnum.New_To_Rejected:
+								return New_To_Rejected;
+							case ActionsEnum.Acknowledged_To_Rejected:
+								return Acknowledged_To_Rejected;
+							case ActionsEnum.Inprogess_To_Failed:
+								return Inprogess_To_Failed;
+							case ActionsEnum.Inprogress_To_Partial:
+								return Inprogress_To_Partial;
+							case ActionsEnum.Inprogress_To_Held:
+								return Inprogress_To_Held;
+							case ActionsEnum.Inprogress_To_Pending:
+								return Inprogress_To_Pending;
+							case ActionsEnum.Held_To_Assesscancellation:
+								return Held_To_Assesscancellation;
+							case ActionsEnum.Assesscancellation_To_Pendingcancellation:
+								return Assesscancellation_To_Pendingcancellation;
+							case ActionsEnum.Pendingcancellation_To_Cancelled:
+								return Pendingcancellation_To_Cancelled;
+							case ActionsEnum.Pending_To_Assesscancellation:
+								return Pending_To_Assesscancellation;
+							case ActionsEnum.Held_To_Inprogress:
+								return Held_To_Inprogress;
+							case ActionsEnum.Pending_To_Inprogress:
+								return Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum ActionsEnum
-                {
-                    New_To_Acknowledged,
-                    Acknowledged_To_Inprogress,
-                    Inprogress_To_Completed,
-                    New_To_Rejected,
-                    Acknowledged_To_Rejected,
-                    Inprogess_To_Failed,
-                    Inprogress_To_Partial,
-                    Inprogress_To_Held,
-                    Inprogress_To_Pending,
-                    Held_To_Assesscancellation,
-                    Assesscancellation_To_Pendingcancellation,
-                    Pendingcancellation_To_Cancelled,
-                    Pending_To_Assesscancellation,
-                    Held_To_Inprogress,
-                    Pending_To_Inprogress
-                }
-            }
+					public static ActionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Acknowledged:
+								return ActionsEnum.New_To_Acknowledged;
+							case Acknowledged_To_Inprogress:
+								return ActionsEnum.Acknowledged_To_Inprogress;
+							case Inprogress_To_Completed:
+								return ActionsEnum.Inprogress_To_Completed;
+							case New_To_Rejected:
+								return ActionsEnum.New_To_Rejected;
+							case Acknowledged_To_Rejected:
+								return ActionsEnum.Acknowledged_To_Rejected;
+							case Inprogess_To_Failed:
+								return ActionsEnum.Inprogess_To_Failed;
+							case Inprogress_To_Partial:
+								return ActionsEnum.Inprogress_To_Partial;
+							case Inprogress_To_Held:
+								return ActionsEnum.Inprogress_To_Held;
+							case Inprogress_To_Pending:
+								return ActionsEnum.Inprogress_To_Pending;
+							case Held_To_Assesscancellation:
+								return ActionsEnum.Held_To_Assesscancellation;
+							case Assesscancellation_To_Pendingcancellation:
+								return ActionsEnum.Assesscancellation_To_Pendingcancellation;
+							case Pendingcancellation_To_Cancelled:
+								return ActionsEnum.Pendingcancellation_To_Cancelled;
+							case Pending_To_Assesscancellation:
+								return ActionsEnum.Pending_To_Assesscancellation;
+							case Held_To_Inprogress:
+								return ActionsEnum.Held_To_Inprogress;
+							case Pending_To_Inprogress:
+								return ActionsEnum.Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-            public static class Serviceorder_Behavior
-            {
-                public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("9548dac2-dbef-4d14-b319-c608ed7c6ad8"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static class Statuses
-                {
-                    public const string New = "06df5562-cd9b-4b0b-bd45-c58560a8b22a";
-                    public const string Acknowledged = "d917fc53-2638-4ab9-9ac6-651ec5312bac";
-                    public const string InProgress = "331dc1c2-1950-4c00-a4ae-0aba674a30e6";
-                    public const string Completed = "260a7073-e54e-4482-a8a7-2b4f2e49c42e";
-                    public const string Rejected = "6a01a480-4c38-4db7-b545-72ba05742a7e";
-                    public const string Failed = "7f13d019-29de-43cb-a510-ab2b2a77e785";
-                    public const string PartiallyFailed = "f8a8d853-faaf-401c-9865-71e314614023";
-                    public const string Held = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44";
-                    public const string Pending = "23f9fa75-32b8-4e4a-bd65-06a7344d1902";
-                    public const string AssessCancellation = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5";
-                    public const string PendingCancellation = "15d08c01-fe63-4d5f-8544-e5b4d66439f5";
-                    public const string Cancelled = "61b80d48-d555-462e-baae-a52b17c85ddb";
-                    public static string ToValue(StatusesEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case StatusesEnum.New:
-                                return New;
-                            case StatusesEnum.Acknowledged:
-                                return Acknowledged;
-                            case StatusesEnum.InProgress:
-                                return InProgress;
-                            case StatusesEnum.Completed:
-                                return Completed;
-                            case StatusesEnum.Rejected:
-                                return Rejected;
-                            case StatusesEnum.Failed:
-                                return Failed;
-                            case StatusesEnum.PartiallyFailed:
-                                return PartiallyFailed;
-                            case StatusesEnum.Held:
-                                return Held;
-                            case StatusesEnum.Pending:
-                                return Pending;
-                            case StatusesEnum.AssessCancellation:
-                                return AssessCancellation;
-                            case StatusesEnum.PendingCancellation:
-                                return PendingCancellation;
-                            case StatusesEnum.Cancelled:
-                                return Cancelled;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum ActionsEnum
+				{
+					New_To_Acknowledged,
+					Acknowledged_To_Inprogress,
+					Inprogress_To_Completed,
+					New_To_Rejected,
+					Acknowledged_To_Rejected,
+					Inprogess_To_Failed,
+					Inprogress_To_Partial,
+					Inprogress_To_Held,
+					Inprogress_To_Pending,
+					Held_To_Assesscancellation,
+					Assesscancellation_To_Pendingcancellation,
+					Pendingcancellation_To_Cancelled,
+					Pending_To_Assesscancellation,
+					Held_To_Inprogress,
+					Pending_To_Inprogress
+				}
+			}
 
-                    public static StatusesEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New:
-                                return StatusesEnum.New;
-                            case Acknowledged:
-                                return StatusesEnum.Acknowledged;
-                            case InProgress:
-                                return StatusesEnum.InProgress;
-                            case Completed:
-                                return StatusesEnum.Completed;
-                            case Rejected:
-                                return StatusesEnum.Rejected;
-                            case Failed:
-                                return StatusesEnum.Failed;
-                            case PartiallyFailed:
-                                return StatusesEnum.PartiallyFailed;
-                            case Held:
-                                return StatusesEnum.Held;
-                            case Pending:
-                                return StatusesEnum.Pending;
-                            case AssessCancellation:
-                                return StatusesEnum.AssessCancellation;
-                            case PendingCancellation:
-                                return StatusesEnum.PendingCancellation;
-                            case Cancelled:
-                                return StatusesEnum.Cancelled;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+			public static class Serviceorder_Behavior
+			{
+				public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("9548dac2-dbef-4d14-b319-c608ed7c6ad8"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static class Statuses
+				{
+					public const string New = "06df5562-cd9b-4b0b-bd45-c58560a8b22a";
+					public const string Acknowledged = "d917fc53-2638-4ab9-9ac6-651ec5312bac";
+					public const string InProgress = "331dc1c2-1950-4c00-a4ae-0aba674a30e6";
+					public const string Completed = "260a7073-e54e-4482-a8a7-2b4f2e49c42e";
+					public const string Rejected = "6a01a480-4c38-4db7-b545-72ba05742a7e";
+					public const string Failed = "7f13d019-29de-43cb-a510-ab2b2a77e785";
+					public const string PartiallyFailed = "f8a8d853-faaf-401c-9865-71e314614023";
+					public const string Held = "310ea9e9-f65c-4e11-8b1b-e2c34688ef44";
+					public const string Pending = "23f9fa75-32b8-4e4a-bd65-06a7344d1902";
+					public const string AssessCancellation = "f7e93ddd-cddf-4755-a3e5-0f6ff885dcf5";
+					public const string PendingCancellation = "15d08c01-fe63-4d5f-8544-e5b4d66439f5";
+					public const string Cancelled = "61b80d48-d555-462e-baae-a52b17c85ddb";
+					public static string ToValue(StatusesEnum @enum)
+					{
+						switch (@enum)
+						{
+							case StatusesEnum.New:
+								return New;
+							case StatusesEnum.Acknowledged:
+								return Acknowledged;
+							case StatusesEnum.InProgress:
+								return InProgress;
+							case StatusesEnum.Completed:
+								return Completed;
+							case StatusesEnum.Rejected:
+								return Rejected;
+							case StatusesEnum.Failed:
+								return Failed;
+							case StatusesEnum.PartiallyFailed:
+								return PartiallyFailed;
+							case StatusesEnum.Held:
+								return Held;
+							case StatusesEnum.Pending:
+								return Pending;
+							case StatusesEnum.AssessCancellation:
+								return AssessCancellation;
+							case StatusesEnum.PendingCancellation:
+								return PendingCancellation;
+							case StatusesEnum.Cancelled:
+								return Cancelled;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum StatusesEnum
-                {
-                    New,
-                    Acknowledged,
-                    [Description("In Progress")]
-                    InProgress,
-                    Completed,
-                    Rejected,
-                    Failed,
-                    [Description("Partially Failed")]
-                    PartiallyFailed,
-                    Held,
-                    Pending,
-                    [Description("Assess Cancellation")]
-                    AssessCancellation,
-                    [Description("Pending Cancellation")]
-                    PendingCancellation,
-                    Cancelled
-                }
+					public static StatusesEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New:
+								return StatusesEnum.New;
+							case Acknowledged:
+								return StatusesEnum.Acknowledged;
+							case InProgress:
+								return StatusesEnum.InProgress;
+							case Completed:
+								return StatusesEnum.Completed;
+							case Rejected:
+								return StatusesEnum.Rejected;
+							case Failed:
+								return StatusesEnum.Failed;
+							case PartiallyFailed:
+								return StatusesEnum.PartiallyFailed;
+							case Held:
+								return StatusesEnum.Held;
+							case Pending:
+								return StatusesEnum.Pending;
+							case AssessCancellation:
+								return StatusesEnum.AssessCancellation;
+							case PendingCancellation:
+								return StatusesEnum.PendingCancellation;
+							case Cancelled:
+								return StatusesEnum.Cancelled;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Transitions
-                {
-                    public const string New_To_Acknowledged = "new_to_acknowledged";
-                    public const string New_To_Rejected = "new_to_rejected";
-                    public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
-                    public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
-                    public const string Inprogress_To_Completed = "inprogress_to_completed";
-                    public const string Inprogress_To_Failed = "inprogress_to_failed";
-                    public const string Inprogress_To_Partial = "inprogress_to_partial";
-                    public const string Inprogress_To_Held = "inprogress_to_held";
-                    public const string Inprogress_To_Pending = "inprogress_to_pending";
-                    public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
-                    public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
-                    public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
-                    public const string Held_To_Inprogress = "held_to_inprogress";
-                    public const string Assesscancellation_To_Held = "assesscancellation_to_held";
-                    public const string Assesscancellation_To_Pending = "assesscancellation_to_pending";
-                    public const string Held_To_Assesscancellation = "held_to_assesscancellation";
-                    public const string Pending_To_Inprogress = "pending_to_inprogress";
-                    public static string ToValue(TransitionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case TransitionsEnum.New_To_Acknowledged:
-                                return New_To_Acknowledged;
-                            case TransitionsEnum.New_To_Rejected:
-                                return New_To_Rejected;
-                            case TransitionsEnum.Acknowledged_To_Rejected:
-                                return Acknowledged_To_Rejected;
-                            case TransitionsEnum.Acknowledged_To_Inprogress:
-                                return Acknowledged_To_Inprogress;
-                            case TransitionsEnum.Inprogress_To_Completed:
-                                return Inprogress_To_Completed;
-                            case TransitionsEnum.Inprogress_To_Failed:
-                                return Inprogress_To_Failed;
-                            case TransitionsEnum.Inprogress_To_Partial:
-                                return Inprogress_To_Partial;
-                            case TransitionsEnum.Inprogress_To_Held:
-                                return Inprogress_To_Held;
-                            case TransitionsEnum.Inprogress_To_Pending:
-                                return Inprogress_To_Pending;
-                            case TransitionsEnum.Pending_To_Assesscancellation:
-                                return Pending_To_Assesscancellation;
-                            case TransitionsEnum.Assesscancellation_To_Pendingcancellation:
-                                return Assesscancellation_To_Pendingcancellation;
-                            case TransitionsEnum.Pendingcancellation_To_Cancelled:
-                                return Pendingcancellation_To_Cancelled;
-                            case TransitionsEnum.Held_To_Inprogress:
-                                return Held_To_Inprogress;
-                            case TransitionsEnum.Assesscancellation_To_Held:
-                                return Assesscancellation_To_Held;
-                            case TransitionsEnum.Assesscancellation_To_Pending:
-                                return Assesscancellation_To_Pending;
-                            case TransitionsEnum.Held_To_Assesscancellation:
-                                return Held_To_Assesscancellation;
-                            case TransitionsEnum.Pending_To_Inprogress:
-                                return Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum StatusesEnum
+				{
+					New,
+					Acknowledged,
+					[Description("In Progress")]
+					InProgress,
+					Completed,
+					Rejected,
+					Failed,
+					[Description("Partially Failed")]
+					PartiallyFailed,
+					Held,
+					Pending,
+					[Description("Assess Cancellation")]
+					AssessCancellation,
+					[Description("Pending Cancellation")]
+					PendingCancellation,
+					Cancelled
+				}
 
-                    public static TransitionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Acknowledged:
-                                return TransitionsEnum.New_To_Acknowledged;
-                            case New_To_Rejected:
-                                return TransitionsEnum.New_To_Rejected;
-                            case Acknowledged_To_Rejected:
-                                return TransitionsEnum.Acknowledged_To_Rejected;
-                            case Acknowledged_To_Inprogress:
-                                return TransitionsEnum.Acknowledged_To_Inprogress;
-                            case Inprogress_To_Completed:
-                                return TransitionsEnum.Inprogress_To_Completed;
-                            case Inprogress_To_Failed:
-                                return TransitionsEnum.Inprogress_To_Failed;
-                            case Inprogress_To_Partial:
-                                return TransitionsEnum.Inprogress_To_Partial;
-                            case Inprogress_To_Held:
-                                return TransitionsEnum.Inprogress_To_Held;
-                            case Inprogress_To_Pending:
-                                return TransitionsEnum.Inprogress_To_Pending;
-                            case Pending_To_Assesscancellation:
-                                return TransitionsEnum.Pending_To_Assesscancellation;
-                            case Assesscancellation_To_Pendingcancellation:
-                                return TransitionsEnum.Assesscancellation_To_Pendingcancellation;
-                            case Pendingcancellation_To_Cancelled:
-                                return TransitionsEnum.Pendingcancellation_To_Cancelled;
-                            case Held_To_Inprogress:
-                                return TransitionsEnum.Held_To_Inprogress;
-                            case Assesscancellation_To_Held:
-                                return TransitionsEnum.Assesscancellation_To_Held;
-                            case Assesscancellation_To_Pending:
-                                return TransitionsEnum.Assesscancellation_To_Pending;
-                            case Held_To_Assesscancellation:
-                                return TransitionsEnum.Held_To_Assesscancellation;
-                            case Pending_To_Inprogress:
-                                return TransitionsEnum.Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Transitions
+				{
+					public const string New_To_Acknowledged = "new_to_acknowledged";
+					public const string New_To_Rejected = "new_to_rejected";
+					public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
+					public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
+					public const string Inprogress_To_Completed = "inprogress_to_completed";
+					public const string Inprogress_To_Failed = "inprogress_to_failed";
+					public const string Inprogress_To_Partial = "inprogress_to_partial";
+					public const string Inprogress_To_Held = "inprogress_to_held";
+					public const string Inprogress_To_Pending = "inprogress_to_pending";
+					public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
+					public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
+					public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
+					public const string Held_To_Inprogress = "held_to_inprogress";
+					public const string Assesscancellation_To_Held = "assesscancellation_to_held";
+					public const string Assesscancellation_To_Pending = "assesscancellation_to_pending";
+					public const string Held_To_Assesscancellation = "held_to_assesscancellation";
+					public const string Pending_To_Inprogress = "pending_to_inprogress";
+					public static string ToValue(TransitionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case TransitionsEnum.New_To_Acknowledged:
+								return New_To_Acknowledged;
+							case TransitionsEnum.New_To_Rejected:
+								return New_To_Rejected;
+							case TransitionsEnum.Acknowledged_To_Rejected:
+								return Acknowledged_To_Rejected;
+							case TransitionsEnum.Acknowledged_To_Inprogress:
+								return Acknowledged_To_Inprogress;
+							case TransitionsEnum.Inprogress_To_Completed:
+								return Inprogress_To_Completed;
+							case TransitionsEnum.Inprogress_To_Failed:
+								return Inprogress_To_Failed;
+							case TransitionsEnum.Inprogress_To_Partial:
+								return Inprogress_To_Partial;
+							case TransitionsEnum.Inprogress_To_Held:
+								return Inprogress_To_Held;
+							case TransitionsEnum.Inprogress_To_Pending:
+								return Inprogress_To_Pending;
+							case TransitionsEnum.Pending_To_Assesscancellation:
+								return Pending_To_Assesscancellation;
+							case TransitionsEnum.Assesscancellation_To_Pendingcancellation:
+								return Assesscancellation_To_Pendingcancellation;
+							case TransitionsEnum.Pendingcancellation_To_Cancelled:
+								return Pendingcancellation_To_Cancelled;
+							case TransitionsEnum.Held_To_Inprogress:
+								return Held_To_Inprogress;
+							case TransitionsEnum.Assesscancellation_To_Held:
+								return Assesscancellation_To_Held;
+							case TransitionsEnum.Assesscancellation_To_Pending:
+								return Assesscancellation_To_Pending;
+							case TransitionsEnum.Held_To_Assesscancellation:
+								return Held_To_Assesscancellation;
+							case TransitionsEnum.Pending_To_Inprogress:
+								return Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum TransitionsEnum
-                {
-                    New_To_Acknowledged,
-                    New_To_Rejected,
-                    Acknowledged_To_Rejected,
-                    Acknowledged_To_Inprogress,
-                    Inprogress_To_Completed,
-                    Inprogress_To_Failed,
-                    Inprogress_To_Partial,
-                    Inprogress_To_Held,
-                    Inprogress_To_Pending,
-                    Pending_To_Assesscancellation,
-                    Assesscancellation_To_Pendingcancellation,
-                    Pendingcancellation_To_Cancelled,
-                    Held_To_Inprogress,
-                    Assesscancellation_To_Held,
-                    Assesscancellation_To_Pending,
-                    Held_To_Assesscancellation,
-                    Pending_To_Inprogress
-                }
+					public static TransitionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Acknowledged:
+								return TransitionsEnum.New_To_Acknowledged;
+							case New_To_Rejected:
+								return TransitionsEnum.New_To_Rejected;
+							case Acknowledged_To_Rejected:
+								return TransitionsEnum.Acknowledged_To_Rejected;
+							case Acknowledged_To_Inprogress:
+								return TransitionsEnum.Acknowledged_To_Inprogress;
+							case Inprogress_To_Completed:
+								return TransitionsEnum.Inprogress_To_Completed;
+							case Inprogress_To_Failed:
+								return TransitionsEnum.Inprogress_To_Failed;
+							case Inprogress_To_Partial:
+								return TransitionsEnum.Inprogress_To_Partial;
+							case Inprogress_To_Held:
+								return TransitionsEnum.Inprogress_To_Held;
+							case Inprogress_To_Pending:
+								return TransitionsEnum.Inprogress_To_Pending;
+							case Pending_To_Assesscancellation:
+								return TransitionsEnum.Pending_To_Assesscancellation;
+							case Assesscancellation_To_Pendingcancellation:
+								return TransitionsEnum.Assesscancellation_To_Pendingcancellation;
+							case Pendingcancellation_To_Cancelled:
+								return TransitionsEnum.Pendingcancellation_To_Cancelled;
+							case Held_To_Inprogress:
+								return TransitionsEnum.Held_To_Inprogress;
+							case Assesscancellation_To_Held:
+								return TransitionsEnum.Assesscancellation_To_Held;
+							case Assesscancellation_To_Pending:
+								return TransitionsEnum.Assesscancellation_To_Pending;
+							case Held_To_Assesscancellation:
+								return TransitionsEnum.Held_To_Assesscancellation;
+							case Pending_To_Inprogress:
+								return TransitionsEnum.Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Actions
-                {
-                    public const string New_To_Acknowledged = "new_to_acknowledged";
-                    public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
-                    public const string Inprogress_To_Completed = "inprogress_to_completed";
-                    public const string New_To_Rejected = "new_to_rejected";
-                    public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
-                    public const string Inprogess_To_Failed = "inprogess_to_failed";
-                    public const string Inprogress_To_Partial = "inprogress_to_partial";
-                    public const string Inprogress_To_Held = "inprogress_to_held";
-                    public const string Inprogress_To_Pending = "inprogress_to_pending";
-                    public const string Held_To_Assesscancellation = "held_to_assesscancellation";
-                    public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
-                    public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
-                    public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
-                    public const string Held_To_Inprogress = "held_to_inprogress";
-                    public const string Pending_To_Inprogress = "pending_to_inprogress";
-                    public static string ToValue(ActionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case ActionsEnum.New_To_Acknowledged:
-                                return New_To_Acknowledged;
-                            case ActionsEnum.Acknowledged_To_Inprogress:
-                                return Acknowledged_To_Inprogress;
-                            case ActionsEnum.Inprogress_To_Completed:
-                                return Inprogress_To_Completed;
-                            case ActionsEnum.New_To_Rejected:
-                                return New_To_Rejected;
-                            case ActionsEnum.Acknowledged_To_Rejected:
-                                return Acknowledged_To_Rejected;
-                            case ActionsEnum.Inprogess_To_Failed:
-                                return Inprogess_To_Failed;
-                            case ActionsEnum.Inprogress_To_Partial:
-                                return Inprogress_To_Partial;
-                            case ActionsEnum.Inprogress_To_Held:
-                                return Inprogress_To_Held;
-                            case ActionsEnum.Inprogress_To_Pending:
-                                return Inprogress_To_Pending;
-                            case ActionsEnum.Held_To_Assesscancellation:
-                                return Held_To_Assesscancellation;
-                            case ActionsEnum.Assesscancellation_To_Pendingcancellation:
-                                return Assesscancellation_To_Pendingcancellation;
-                            case ActionsEnum.Pendingcancellation_To_Cancelled:
-                                return Pendingcancellation_To_Cancelled;
-                            case ActionsEnum.Pending_To_Assesscancellation:
-                                return Pending_To_Assesscancellation;
-                            case ActionsEnum.Held_To_Inprogress:
-                                return Held_To_Inprogress;
-                            case ActionsEnum.Pending_To_Inprogress:
-                                return Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum TransitionsEnum
+				{
+					New_To_Acknowledged,
+					New_To_Rejected,
+					Acknowledged_To_Rejected,
+					Acknowledged_To_Inprogress,
+					Inprogress_To_Completed,
+					Inprogress_To_Failed,
+					Inprogress_To_Partial,
+					Inprogress_To_Held,
+					Inprogress_To_Pending,
+					Pending_To_Assesscancellation,
+					Assesscancellation_To_Pendingcancellation,
+					Pendingcancellation_To_Cancelled,
+					Held_To_Inprogress,
+					Assesscancellation_To_Held,
+					Assesscancellation_To_Pending,
+					Held_To_Assesscancellation,
+					Pending_To_Inprogress
+				}
 
-                    public static ActionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Acknowledged:
-                                return ActionsEnum.New_To_Acknowledged;
-                            case Acknowledged_To_Inprogress:
-                                return ActionsEnum.Acknowledged_To_Inprogress;
-                            case Inprogress_To_Completed:
-                                return ActionsEnum.Inprogress_To_Completed;
-                            case New_To_Rejected:
-                                return ActionsEnum.New_To_Rejected;
-                            case Acknowledged_To_Rejected:
-                                return ActionsEnum.Acknowledged_To_Rejected;
-                            case Inprogess_To_Failed:
-                                return ActionsEnum.Inprogess_To_Failed;
-                            case Inprogress_To_Partial:
-                                return ActionsEnum.Inprogress_To_Partial;
-                            case Inprogress_To_Held:
-                                return ActionsEnum.Inprogress_To_Held;
-                            case Inprogress_To_Pending:
-                                return ActionsEnum.Inprogress_To_Pending;
-                            case Held_To_Assesscancellation:
-                                return ActionsEnum.Held_To_Assesscancellation;
-                            case Assesscancellation_To_Pendingcancellation:
-                                return ActionsEnum.Assesscancellation_To_Pendingcancellation;
-                            case Pendingcancellation_To_Cancelled:
-                                return ActionsEnum.Pendingcancellation_To_Cancelled;
-                            case Pending_To_Assesscancellation:
-                                return ActionsEnum.Pending_To_Assesscancellation;
-                            case Held_To_Inprogress:
-                                return ActionsEnum.Held_To_Inprogress;
-                            case Pending_To_Inprogress:
-                                return ActionsEnum.Pending_To_Inprogress;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Actions
+				{
+					public const string New_To_Acknowledged = "new_to_acknowledged";
+					public const string Acknowledged_To_Inprogress = "acknowledged_to_inprogress";
+					public const string Inprogress_To_Completed = "inprogress_to_completed";
+					public const string New_To_Rejected = "new_to_rejected";
+					public const string Acknowledged_To_Rejected = "acknowledged_to_rejected";
+					public const string Inprogess_To_Failed = "inprogess_to_failed";
+					public const string Inprogress_To_Partial = "inprogress_to_partial";
+					public const string Inprogress_To_Held = "inprogress_to_held";
+					public const string Inprogress_To_Pending = "inprogress_to_pending";
+					public const string Held_To_Assesscancellation = "held_to_assesscancellation";
+					public const string Assesscancellation_To_Pendingcancellation = "assesscancellation_to_pendingcancellation";
+					public const string Pendingcancellation_To_Cancelled = "pendingcancellation_to_cancelled";
+					public const string Pending_To_Assesscancellation = "pending_to_assesscancellation";
+					public const string Held_To_Inprogress = "held_to_inprogress";
+					public const string Pending_To_Inprogress = "pending_to_inprogress";
+					public static string ToValue(ActionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case ActionsEnum.New_To_Acknowledged:
+								return New_To_Acknowledged;
+							case ActionsEnum.Acknowledged_To_Inprogress:
+								return Acknowledged_To_Inprogress;
+							case ActionsEnum.Inprogress_To_Completed:
+								return Inprogress_To_Completed;
+							case ActionsEnum.New_To_Rejected:
+								return New_To_Rejected;
+							case ActionsEnum.Acknowledged_To_Rejected:
+								return Acknowledged_To_Rejected;
+							case ActionsEnum.Inprogess_To_Failed:
+								return Inprogess_To_Failed;
+							case ActionsEnum.Inprogress_To_Partial:
+								return Inprogress_To_Partial;
+							case ActionsEnum.Inprogress_To_Held:
+								return Inprogress_To_Held;
+							case ActionsEnum.Inprogress_To_Pending:
+								return Inprogress_To_Pending;
+							case ActionsEnum.Held_To_Assesscancellation:
+								return Held_To_Assesscancellation;
+							case ActionsEnum.Assesscancellation_To_Pendingcancellation:
+								return Assesscancellation_To_Pendingcancellation;
+							case ActionsEnum.Pendingcancellation_To_Cancelled:
+								return Pendingcancellation_To_Cancelled;
+							case ActionsEnum.Pending_To_Assesscancellation:
+								return Pending_To_Assesscancellation;
+							case ActionsEnum.Held_To_Inprogress:
+								return Held_To_Inprogress;
+							case ActionsEnum.Pending_To_Inprogress:
+								return Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum ActionsEnum
-                {
-                    New_To_Acknowledged,
-                    Acknowledged_To_Inprogress,
-                    Inprogress_To_Completed,
-                    New_To_Rejected,
-                    Acknowledged_To_Rejected,
-                    Inprogess_To_Failed,
-                    Inprogress_To_Partial,
-                    Inprogress_To_Held,
-                    Inprogress_To_Pending,
-                    Held_To_Assesscancellation,
-                    Assesscancellation_To_Pendingcancellation,
-                    Pendingcancellation_To_Cancelled,
-                    Pending_To_Assesscancellation,
-                    Held_To_Inprogress,
-                    Pending_To_Inprogress
-                }
-            }
+					public static ActionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Acknowledged:
+								return ActionsEnum.New_To_Acknowledged;
+							case Acknowledged_To_Inprogress:
+								return ActionsEnum.Acknowledged_To_Inprogress;
+							case Inprogress_To_Completed:
+								return ActionsEnum.Inprogress_To_Completed;
+							case New_To_Rejected:
+								return ActionsEnum.New_To_Rejected;
+							case Acknowledged_To_Rejected:
+								return ActionsEnum.Acknowledged_To_Rejected;
+							case Inprogess_To_Failed:
+								return ActionsEnum.Inprogess_To_Failed;
+							case Inprogress_To_Partial:
+								return ActionsEnum.Inprogress_To_Partial;
+							case Inprogress_To_Held:
+								return ActionsEnum.Inprogress_To_Held;
+							case Inprogress_To_Pending:
+								return ActionsEnum.Inprogress_To_Pending;
+							case Held_To_Assesscancellation:
+								return ActionsEnum.Held_To_Assesscancellation;
+							case Assesscancellation_To_Pendingcancellation:
+								return ActionsEnum.Assesscancellation_To_Pendingcancellation;
+							case Pendingcancellation_To_Cancelled:
+								return ActionsEnum.Pendingcancellation_To_Cancelled;
+							case Pending_To_Assesscancellation:
+								return ActionsEnum.Pending_To_Assesscancellation;
+							case Held_To_Inprogress:
+								return ActionsEnum.Held_To_Inprogress;
+							case Pending_To_Inprogress:
+								return ActionsEnum.Pending_To_Inprogress;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-            public static class Service_Behavior
-            {
-                public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("b9fad406-ebce-47c0-8620-c1d3679279ee"))
-                {ModuleId = "(slc)servicemanagement"};
-                public static class Statuses
-                {
-                    public const string New = "d7b94689-2565-48b2-8291-92bf9fc43498";
-                    public const string Designed = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211";
-                    public const string Reserved = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211 (duplicate)";
-                    public const string Active = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211 (duplicate) (duplicate)";
-                    public const string Teminated = "701ce0f7-637c-4c86-a807-d36fe499649c";
-                    public const string Retired = "21923bba-4019-404f-bfb2-b32abd2de748";
-                    public static string ToValue(StatusesEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case StatusesEnum.New:
-                                return New;
-                            case StatusesEnum.Designed:
-                                return Designed;
-                            case StatusesEnum.Reserved:
-                                return Reserved;
-                            case StatusesEnum.Active:
-                                return Active;
-                            case StatusesEnum.Teminated:
-                                return Teminated;
-                            case StatusesEnum.Retired:
-                                return Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum ActionsEnum
+				{
+					New_To_Acknowledged,
+					Acknowledged_To_Inprogress,
+					Inprogress_To_Completed,
+					New_To_Rejected,
+					Acknowledged_To_Rejected,
+					Inprogess_To_Failed,
+					Inprogress_To_Partial,
+					Inprogress_To_Held,
+					Inprogress_To_Pending,
+					Held_To_Assesscancellation,
+					Assesscancellation_To_Pendingcancellation,
+					Pendingcancellation_To_Cancelled,
+					Pending_To_Assesscancellation,
+					Held_To_Inprogress,
+					Pending_To_Inprogress
+				}
+			}
 
-                    public static StatusesEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New:
-                                return StatusesEnum.New;
-                            case Designed:
-                                return StatusesEnum.Designed;
-                            case Reserved:
-                                return StatusesEnum.Reserved;
-                            case Active:
-                                return StatusesEnum.Active;
-                            case Teminated:
-                                return StatusesEnum.Teminated;
-                            case Retired:
-                                return StatusesEnum.Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+			public static class Service_Behavior
+			{
+				public static DomBehaviorDefinitionId Id { get; } = new DomBehaviorDefinitionId(new Guid("b9fad406-ebce-47c0-8620-c1d3679279ee"))
+				{ ModuleId = "(slc)servicemanagement" };
+				public static class Statuses
+				{
+					public const string New = "d7b94689-2565-48b2-8291-92bf9fc43498";
+					public const string Designed = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211";
+					public const string Reserved = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211 (duplicate)";
+					public const string Active = "51d496fc-2596-4fcc-aca0-4fb5e4f7d211 (duplicate) (duplicate)";
+					public const string Teminated = "701ce0f7-637c-4c86-a807-d36fe499649c";
+					public const string Retired = "21923bba-4019-404f-bfb2-b32abd2de748";
+					public static string ToValue(StatusesEnum @enum)
+					{
+						switch (@enum)
+						{
+							case StatusesEnum.New:
+								return New;
+							case StatusesEnum.Designed:
+								return Designed;
+							case StatusesEnum.Reserved:
+								return Reserved;
+							case StatusesEnum.Active:
+								return Active;
+							case StatusesEnum.Teminated:
+								return Teminated;
+							case StatusesEnum.Retired:
+								return Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum StatusesEnum
-                {
-                    New,
-                    Designed,
-                    Reserved,
-                    Active,
-                    Teminated,
-                    Retired
-                }
+					public static StatusesEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New:
+								return StatusesEnum.New;
+							case Designed:
+								return StatusesEnum.Designed;
+							case Reserved:
+								return StatusesEnum.Reserved;
+							case Active:
+								return StatusesEnum.Active;
+							case Teminated:
+								return StatusesEnum.Teminated;
+							case Retired:
+								return StatusesEnum.Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Transitions
-                {
-                    public const string New_To_Designed = "new_to_designed";
-                    public const string Designed_To_Reserved = "designed_to_reserved";
-                    public const string Reserved_To_Active = "reserved_to_active";
-                    public const string Active_To_Terminated = "active_to_terminated";
-                    public const string Terminated_To_Retired = "terminated_to_retired";
-                    public static string ToValue(TransitionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case TransitionsEnum.New_To_Designed:
-                                return New_To_Designed;
-                            case TransitionsEnum.Designed_To_Reserved:
-                                return Designed_To_Reserved;
-                            case TransitionsEnum.Reserved_To_Active:
-                                return Reserved_To_Active;
-                            case TransitionsEnum.Active_To_Terminated:
-                                return Active_To_Terminated;
-                            case TransitionsEnum.Terminated_To_Retired:
-                                return Terminated_To_Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum StatusesEnum
+				{
+					New,
+					Designed,
+					Reserved,
+					Active,
+					Teminated,
+					Retired
+				}
 
-                    public static TransitionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Designed:
-                                return TransitionsEnum.New_To_Designed;
-                            case Designed_To_Reserved:
-                                return TransitionsEnum.Designed_To_Reserved;
-                            case Reserved_To_Active:
-                                return TransitionsEnum.Reserved_To_Active;
-                            case Active_To_Terminated:
-                                return TransitionsEnum.Active_To_Terminated;
-                            case Terminated_To_Retired:
-                                return TransitionsEnum.Terminated_To_Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Transitions
+				{
+					public const string New_To_Designed = "new_to_designed";
+					public const string Designed_To_Reserved = "designed_to_reserved";
+					public const string Reserved_To_Active = "reserved_to_active";
+					public const string Active_To_Terminated = "active_to_terminated";
+					public const string Terminated_To_Retired = "terminated_to_retired";
+					public static string ToValue(TransitionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case TransitionsEnum.New_To_Designed:
+								return New_To_Designed;
+							case TransitionsEnum.Designed_To_Reserved:
+								return Designed_To_Reserved;
+							case TransitionsEnum.Reserved_To_Active:
+								return Reserved_To_Active;
+							case TransitionsEnum.Active_To_Terminated:
+								return Active_To_Terminated;
+							case TransitionsEnum.Terminated_To_Retired:
+								return Terminated_To_Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum TransitionsEnum
-                {
-                    New_To_Designed,
-                    Designed_To_Reserved,
-                    Reserved_To_Active,
-                    Active_To_Terminated,
-                    Terminated_To_Retired
-                }
+					public static TransitionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Designed:
+								return TransitionsEnum.New_To_Designed;
+							case Designed_To_Reserved:
+								return TransitionsEnum.Designed_To_Reserved;
+							case Reserved_To_Active:
+								return TransitionsEnum.Reserved_To_Active;
+							case Active_To_Terminated:
+								return TransitionsEnum.Active_To_Terminated;
+							case Terminated_To_Retired:
+								return TransitionsEnum.Terminated_To_Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
 
-                public static class Actions
-                {
-                    public const string New_To_Designed = "new_to_designed";
-                    public const string Designed_To_Reserved = "designed_to_reserved";
-                    public const string Reserved_To_Active = "reserved_to_active";
-                    public const string Active_To_Terminated = "active_to_terminated";
-                    public const string Terminated_To_Retired = "terminated_to_retired";
-                    public static string ToValue(ActionsEnum @enum)
-                    {
-                        switch (@enum)
-                        {
-                            case ActionsEnum.New_To_Designed:
-                                return New_To_Designed;
-                            case ActionsEnum.Designed_To_Reserved:
-                                return Designed_To_Reserved;
-                            case ActionsEnum.Reserved_To_Active:
-                                return Reserved_To_Active;
-                            case ActionsEnum.Active_To_Terminated:
-                                return Active_To_Terminated;
-                            case ActionsEnum.Terminated_To_Retired:
-                                return Terminated_To_Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
-                        }
-                    }
+				public enum TransitionsEnum
+				{
+					New_To_Designed,
+					Designed_To_Reserved,
+					Reserved_To_Active,
+					Active_To_Terminated,
+					Terminated_To_Retired
+				}
 
-                    public static ActionsEnum ToEnum(string s)
-                    {
-                        switch (s)
-                        {
-                            case New_To_Designed:
-                                return ActionsEnum.New_To_Designed;
-                            case Designed_To_Reserved:
-                                return ActionsEnum.Designed_To_Reserved;
-                            case Reserved_To_Active:
-                                return ActionsEnum.Reserved_To_Active;
-                            case Active_To_Terminated:
-                                return ActionsEnum.Active_To_Terminated;
-                            case Terminated_To_Retired:
-                                return ActionsEnum.Terminated_To_Retired;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
-                        }
-                    }
-                }
+				public static class Actions
+				{
+					public const string New_To_Designed = "new_to_designed";
+					public const string Designed_To_Reserved = "designed_to_reserved";
+					public const string Reserved_To_Active = "reserved_to_active";
+					public const string Active_To_Terminated = "active_to_terminated";
+					public const string Terminated_To_Retired = "terminated_to_retired";
+					public static string ToValue(ActionsEnum @enum)
+					{
+						switch (@enum)
+						{
+							case ActionsEnum.New_To_Designed:
+								return New_To_Designed;
+							case ActionsEnum.Designed_To_Reserved:
+								return Designed_To_Reserved;
+							case ActionsEnum.Reserved_To_Active:
+								return Reserved_To_Active;
+							case ActionsEnum.Active_To_Terminated:
+								return Active_To_Terminated;
+							case ActionsEnum.Terminated_To_Retired:
+								return Terminated_To_Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(@enum), @enum, "Invalid value.");
+						}
+					}
 
-                public enum ActionsEnum
-                {
-                    New_To_Designed,
-                    Designed_To_Reserved,
-                    Reserved_To_Active,
-                    Active_To_Terminated,
-                    Terminated_To_Retired
-                }
-            }
-        }
-    }
+					public static ActionsEnum ToEnum(string s)
+					{
+						switch (s)
+						{
+							case New_To_Designed:
+								return ActionsEnum.New_To_Designed;
+							case Designed_To_Reserved:
+								return ActionsEnum.Designed_To_Reserved;
+							case Reserved_To_Active:
+								return ActionsEnum.Reserved_To_Active;
+							case Active_To_Terminated:
+								return ActionsEnum.Active_To_Terminated;
+							case Terminated_To_Retired:
+								return ActionsEnum.Terminated_To_Retired;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(s), s, "Invalid value.");
+						}
+					}
+				}
+
+				public enum ActionsEnum
+				{
+					New_To_Designed,
+					Designed_To_Reserved,
+					Reserved_To_Active,
+					Active_To_Terminated,
+					Terminated_To_Retired
+				}
+			}
+		}
+	}
 }
 //------------------------------------------------------------------------------
 // <auto-generated>
@@ -1626,1117 +1686,1430 @@ namespace DomHelpers.SlcServicemanagement
 //------------------------------------------------------------------------------
 namespace DomHelpers.SlcServicemanagement
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Messages;
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrdersInstance DOM instance.
-    /// The <see cref="ServiceOrdersInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrdersInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class. Creates an empty <see cref="ServiceOrdersInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceOrdersInstance(): base(SlcServicemanagementIds.Definitions.ServiceOrders)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class. Creates an empty <see cref="ServiceOrdersInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceOrdersInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceOrders, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrdersInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrdersInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrders))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrders)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets the Status ID of the DOM Instance.
-        /// </summary>
-        public SlcServicemanagementIds.Behaviors.Serviceorder_Behavior.StatusesEnum Status
-        {
-            get
-            {
-                return SlcServicemanagementIds.Behaviors.Serviceorder_Behavior.Statuses.ToEnum(StatusId);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceOrderInfoSection ServiceOrderInfo { get; set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItems section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceOrderItemsSection> ServiceOrderItems { get; private set; }
-
-        public static explicit operator ServiceOrdersInstance(DomInstance instance)
-        {
-            return new ServiceOrdersInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceOrderInfo.ToSection());
-            foreach (var item in ServiceOrderItems)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceOrderInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderInfo.Id));
-            if (_serviceOrderInfo is null)
-            {
-                ServiceOrderInfo = new ServiceOrderInfoSection();
-            }
-            else
-            {
-                ServiceOrderInfo = new ServiceOrderInfoSection(_serviceOrderInfo);
-            }
-
-            ServiceOrderItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItems.Id)).Select(section => new ServiceOrderItemsSection(section)).ToList();
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceCategoryInstance DOM instance.
-    /// The <see cref="ServiceCategoryInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceCategoryInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class. Creates an empty <see cref="ServiceCategoryInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceCategoryInstance(): base(SlcServicemanagementIds.Definitions.ServiceCategory)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class. Creates an empty <see cref="ServiceCategoryInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceCategoryInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceCategory, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceCategoryInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceCategoryInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceCategory))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceCategory)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceCategoryInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceCategoryInfoSection ServiceCategoryInfo { get; set; }
-
-        public static explicit operator ServiceCategoryInstance(DomInstance instance)
-        {
-            return new ServiceCategoryInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceCategoryInfo.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceCategoryInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id));
-            if (_serviceCategoryInfo is null)
-            {
-                ServiceCategoryInfo = new ServiceCategoryInfoSection();
-            }
-            else
-            {
-                ServiceCategoryInfo = new ServiceCategoryInfoSection(_serviceCategoryInfo);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceConfigurationInstance DOM instance.
-    /// The <see cref="ServiceConfigurationInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceConfigurationInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class. Creates an empty <see cref="ServiceConfigurationInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceConfigurationInstance(): base(SlcServicemanagementIds.Definitions.ServiceConfiguration)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class. Creates an empty <see cref="ServiceConfigurationInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceConfigurationInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceConfiguration, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceConfigurationInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceConfigurationInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceConfiguration))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceConfiguration)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceConfigurationParametersValues section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceConfigurationParametersValuesSection> ServiceConfigurationParametersValues { get; private set; }
-
-        public static explicit operator ServiceConfigurationInstance(DomInstance instance)
-        {
-            return new ServiceConfigurationInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            foreach (var item in ServiceConfigurationParametersValues)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            ServiceConfigurationParametersValues = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)).Select(section => new ServiceConfigurationParametersValuesSection(section)).ToList();
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceSpecificationsInstance DOM instance.
-    /// The <see cref="ServiceSpecificationsInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceSpecificationsInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class. Creates an empty <see cref="ServiceSpecificationsInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceSpecificationsInstance(): base(SlcServicemanagementIds.Definitions.ServiceSpecifications)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class. Creates an empty <see cref="ServiceSpecificationsInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceSpecificationsInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceSpecifications, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceSpecificationsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceSpecificationsInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceSpecifications))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceSpecifications)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceSpecificationInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceSpecificationInfoSection ServiceSpecificationInfo { get; set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemRelationship section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceItemRelationshipSection> ServiceItemRelationship { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceItems section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceItemsSection> ServiceItems { get; private set; }
-
-        public static explicit operator ServiceSpecificationsInstance(DomInstance instance)
-        {
-            return new ServiceSpecificationsInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceSpecificationInfo.ToSection());
-            foreach (var item in ServiceItemRelationship)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            foreach (var item in ServiceItems)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceSpecificationInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id));
-            if (_serviceSpecificationInfo is null)
-            {
-                ServiceSpecificationInfo = new ServiceSpecificationInfoSection();
-            }
-            else
-            {
-                ServiceSpecificationInfo = new ServiceSpecificationInfoSection(_serviceSpecificationInfo);
-            }
-
-            ServiceItemRelationship = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)).Select(section => new ServiceItemRelationshipSection(section)).ToList();
-            ServiceItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItems.Id)).Select(section => new ServiceItemsSection(section)).ToList();
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemConfigurationValueInstance DOM instance.
-    /// The <see cref="ServiceOrderItemConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemConfigurationValueInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceOrderItemConfigurationValueInstance(): base(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceOrderItemConfigurationValueInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrderItemConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemConfigurationValueInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItemConfigurationValue section of the DOM Instance.
-        /// </summary>
-        public ServiceOrderItemConfigurationValueSection ServiceOrderItemConfigurationValue { get; set; }
-
-        public static explicit operator ServiceOrderItemConfigurationValueInstance(DomInstance instance)
-        {
-            return new ServiceOrderItemConfigurationValueInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceOrderItemConfigurationValue.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceOrderItemConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id));
-            if (_serviceOrderItemConfigurationValue is null)
-            {
-                ServiceOrderItemConfigurationValue = new ServiceOrderItemConfigurationValueSection();
-            }
-            else
-            {
-                ServiceOrderItemConfigurationValue = new ServiceOrderItemConfigurationValueSection(_serviceOrderItemConfigurationValue);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceSpecificationConfigurationValueInstance DOM instance.
-    /// The <see cref="ServiceSpecificationConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceSpecificationConfigurationValueInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceSpecificationConfigurationValueInstance(): base(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceSpecificationConfigurationValueInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceSpecificationConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceSpecificationConfigurationValueInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceSpecificationConfigurationValue section of the DOM Instance.
-        /// </summary>
-        public ServiceSpecificationConfigurationValueSection ServiceSpecificationConfigurationValue { get; set; }
-
-        public static explicit operator ServiceSpecificationConfigurationValueInstance(DomInstance instance)
-        {
-            return new ServiceSpecificationConfigurationValueInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceSpecificationConfigurationValue.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceSpecificationConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id));
-            if (_serviceSpecificationConfigurationValue is null)
-            {
-                ServiceSpecificationConfigurationValue = new ServiceSpecificationConfigurationValueSection();
-            }
-            else
-            {
-                ServiceSpecificationConfigurationValue = new ServiceSpecificationConfigurationValueSection(_serviceSpecificationConfigurationValue);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicePropertiesInstance DOM instance.
-    /// The <see cref="ServicePropertiesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicePropertiesInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class. Creates an empty <see cref="ServicePropertiesInstance"/> instance with default settings.
-        /// </summary>
-        public ServicePropertiesInstance(): base(SlcServicemanagementIds.Definitions.ServiceProperties)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class. Creates an empty <see cref="ServicePropertiesInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServicePropertiesInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceProperties, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicePropertiesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicePropertiesInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceProperties))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceProperties)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the DiscreteServicePropertyValueOptions section of the DOM Instance.
-        /// </summary>
-        public IList<DiscreteServicePropertyValueOptionsSection> DiscreteServicePropertyValueOptions { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the ServicePropertyInfo section of the DOM Instance.
-        /// </summary>
-        public ServicePropertyInfoSection ServicePropertyInfo { get; set; }
-
-        public static explicit operator ServicePropertiesInstance(DomInstance instance)
-        {
-            return new ServicePropertiesInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            foreach (var item in DiscreteServicePropertyValueOptions)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            domInstance.Sections.Add(ServicePropertyInfo.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            DiscreteServicePropertyValueOptions = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)).Select(section => new DiscreteServicePropertyValueOptionsSection(section)).ToList();
-            var _servicePropertyInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServicePropertyInfo.Id));
-            if (_servicePropertyInfo is null)
-            {
-                ServicePropertyInfo = new ServicePropertyInfoSection();
-            }
-            else
-            {
-                ServicePropertyInfo = new ServicePropertyInfoSection(_servicePropertyInfo);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicePropertyValuesInstance DOM instance.
-    /// The <see cref="ServicePropertyValuesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicePropertyValuesInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class. Creates an empty <see cref="ServicePropertyValuesInstance"/> instance with default settings.
-        /// </summary>
-        public ServicePropertyValuesInstance(): base(SlcServicemanagementIds.Definitions.ServicePropertyValues)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class. Creates an empty <see cref="ServicePropertyValuesInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServicePropertyValuesInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServicePropertyValues, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicePropertyValuesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicePropertyValuesInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServicePropertyValues))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServicePropertyValues)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServicePropertyValue section of the DOM Instance.
-        /// </summary>
-        public IList<ServicePropertyValueSection> ServicePropertyValue { get; private set; }
-
-        public static explicit operator ServicePropertyValuesInstance(DomInstance instance)
-        {
-            return new ServicePropertyValuesInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            foreach (var item in ServicePropertyValue)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            ServicePropertyValue = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServicePropertyValue.Id)).Select(section => new ServicePropertyValueSection(section)).ToList();
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicesInstance DOM instance.
-    /// The <see cref="ServicesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicesInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicesInstance"/> class. Creates an empty <see cref="ServicesInstance"/> instance with default settings.
-        /// </summary>
-        public ServicesInstance(): base(SlcServicemanagementIds.Definitions.Services)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicesInstance"/> class. Creates an empty <see cref="ServicesInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServicesInstance(Guid id): base(SlcServicemanagementIds.Definitions.Services, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicesInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.Services))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.Services)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets the Status ID of the DOM Instance.
-        /// </summary>
-        public SlcServicemanagementIds.Behaviors.Service_Behavior.StatusesEnum Status
-        {
-            get
-            {
-                return SlcServicemanagementIds.Behaviors.Service_Behavior.Statuses.ToEnum(StatusId);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceInfoSection ServiceInfo { get; set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemRelationship section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceItemRelationshipSection> ServiceItemRelationship { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceItems section of the DOM Instance.
-        /// </summary>
-        public IList<ServiceItemsSection> ServiceItems { get; private set; }
-
-        public static explicit operator ServicesInstance(DomInstance instance)
-        {
-            return new ServicesInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceInfo.ToSection());
-            foreach (var item in ServiceItemRelationship)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            foreach (var item in ServiceItems)
-            {
-                domInstance.Sections.Add(item.ToSection());
-            }
-
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceInfo.Id));
-            if (_serviceInfo is null)
-            {
-                ServiceInfo = new ServiceInfoSection();
-            }
-            else
-            {
-                ServiceInfo = new ServiceInfoSection(_serviceInfo);
-            }
-
-            ServiceItemRelationship = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)).Select(section => new ServiceItemRelationshipSection(section)).ToList();
-            ServiceItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItems.Id)).Select(section => new ServiceItemsSection(section)).ToList();
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceConfigurationValueInstance DOM instance.
-    /// The <see cref="ServiceConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceConfigurationValueInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceConfigurationValueInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceConfigurationValueInstance(): base(SlcServicemanagementIds.Definitions.ServiceConfigurationValue)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceConfigurationValueInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceConfigurationValueInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceConfigurationValue, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceConfigurationValueInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceConfigurationValue))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceConfigurationValue)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceConfigurationValue section of the DOM Instance.
-        /// </summary>
-        public ServiceConfigurationValueSection ServiceConfigurationValue { get; set; }
-
-        public static explicit operator ServiceConfigurationValueInstance(DomInstance instance)
-        {
-            return new ServiceConfigurationValueInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceConfigurationValue.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id));
-            if (_serviceConfigurationValue is null)
-            {
-                ServiceConfigurationValue = new ServiceConfigurationValueSection();
-            }
-            else
-            {
-                ServiceConfigurationValue = new ServiceConfigurationValueSection(_serviceConfigurationValue);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceItemConfigurationValueInstance DOM instance.
-    /// The <see cref="ServiceItemConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceItemConfigurationValueInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceItemConfigurationValueInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceItemConfigurationValueInstance(): base(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceItemConfigurationValueInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceItemConfigurationValueInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceItemConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceItemConfigurationValueInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemConfigurationValue section of the DOM Instance.
-        /// </summary>
-        public ServiceItemConfigurationValueSection ServiceItemConfigurationValue { get; set; }
-
-        public static explicit operator ServiceItemConfigurationValueInstance(DomInstance instance)
-        {
-            return new ServiceItemConfigurationValueInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceItemConfigurationValue.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceItemConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id));
-            if (_serviceItemConfigurationValue is null)
-            {
-                ServiceItemConfigurationValue = new ServiceItemConfigurationValueSection();
-            }
-            else
-            {
-                ServiceItemConfigurationValue = new ServiceItemConfigurationValueSection(_serviceItemConfigurationValue);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemsInstance DOM instance.
-    /// The <see cref="ServiceOrderItemsInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemsInstance : DomInstanceBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class. Creates an empty <see cref="ServiceOrderItemsInstance"/> instance with default settings.
-        /// </summary>
-        public ServiceOrderItemsInstance(): base(SlcServicemanagementIds.Definitions.ServiceOrderItems)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class. Creates an empty <see cref="ServiceOrderItemsInstance"/> instance with default settings and a specific ID.
-        /// </summary>
-        public ServiceOrderItemsInstance(Guid id): base(SlcServicemanagementIds.Definitions.ServiceOrderItems, id)
-        {
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
-        /// </summary>
-        /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrderItemsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemsInstance(DomInstance domInstance): base(domInstance)
-        {
-            if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrderItems))
-                throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrderItems)}'", nameof(domInstance));
-            InitializeProperties();
-            AfterLoad();
-        }
-
-        /// <summary>
-        /// Gets the Status ID of the DOM Instance.
-        /// </summary>
-        public SlcServicemanagementIds.Behaviors.Serviceorderitem_Behavior.StatusesEnum Status
-        {
-            get
-            {
-                return SlcServicemanagementIds.Behaviors.Serviceorderitem_Behavior.Statuses.ToEnum(StatusId);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItemServiceInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceOrderItemServiceInfoSection ServiceOrderItemServiceInfo { get; set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItemInfo section of the DOM Instance.
-        /// </summary>
-        public ServiceOrderItemInfoSection ServiceOrderItemInfo { get; set; }
-
-        public static explicit operator ServiceOrderItemsInstance(DomInstance instance)
-        {
-            return new ServiceOrderItemsInstance(instance);
-        }
-
-        /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
-        {
-            domInstance.Sections.Clear();
-            domInstance.Sections.Add(ServiceOrderItemServiceInfo.ToSection());
-            domInstance.Sections.Add(ServiceOrderItemInfo.ToSection());
-            return domInstance;
-        }
-
-        /// <inheritdoc />
-        public override void Save(DomHelper helper)
-        {
-            var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
-            var instance = ToInstance();
-            if (exist == null)
-            {
-                domInstance = helper.DomInstances.Create(instance);
-            }
-            else
-            {
-                domInstance = helper.DomInstances.Update(instance);
-            }
-        }
-
-        protected override void InitializeProperties()
-        {
-            var _serviceOrderItemServiceInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id));
-            if (_serviceOrderItemServiceInfo is null)
-            {
-                ServiceOrderItemServiceInfo = new ServiceOrderItemServiceInfoSection();
-            }
-            else
-            {
-                ServiceOrderItemServiceInfo = new ServiceOrderItemServiceInfoSection(_serviceOrderItemServiceInfo);
-            }
-
-            var _serviceOrderItemInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id));
-            if (_serviceOrderItemInfo is null)
-            {
-                ServiceOrderItemInfo = new ServiceOrderItemInfoSection();
-            }
-            else
-            {
-                ServiceOrderItemInfo = new ServiceOrderItemInfoSection(_serviceOrderItemInfo);
-            }
-        }
-    }
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Messages;
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrdersInstance DOM instance.
+	/// The <see cref="ServiceOrdersInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrdersInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class. Creates an empty <see cref="ServiceOrdersInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceOrdersInstance() : base(SlcServicemanagementIds.Definitions.ServiceOrders)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class. Creates an empty <see cref="ServiceOrdersInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceOrdersInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceOrders, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrdersInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrdersInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrdersInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrders))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrders)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets the Status ID of the DOM Instance.
+		/// </summary>
+		public SlcServicemanagementIds.Behaviors.Serviceorder_Behavior.StatusesEnum Status
+		{
+			get
+			{
+				return SlcServicemanagementIds.Behaviors.Serviceorder_Behavior.Statuses.ToEnum(StatusId);
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceOrderInfoSection ServiceOrderInfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItems section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceOrderItemsSection> ServiceOrderItems { get; private set; }
+
+		public static explicit operator ServiceOrdersInstance(DomInstance instance)
+		{
+			return new ServiceOrdersInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrdersInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrdersInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceOrdersInstance Clone()
+		{
+			return new ServiceOrdersInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrdersInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrdersInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceOrdersInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceOrdersInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceOrderInfo.ToSection());
+			foreach (var item in ServiceOrderItems)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceOrderInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderInfo.Id));
+			if (_serviceOrderInfo is null)
+			{
+				ServiceOrderInfo = new ServiceOrderInfoSection();
+			}
+			else
+			{
+				ServiceOrderInfo = new ServiceOrderInfoSection(_serviceOrderInfo);
+			}
+
+			ServiceOrderItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItems.Id)).Select(section => new ServiceOrderItemsSection(section)).ToList();
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceCategoryInstance DOM instance.
+	/// The <see cref="ServiceCategoryInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceCategoryInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class. Creates an empty <see cref="ServiceCategoryInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceCategoryInstance() : base(SlcServicemanagementIds.Definitions.ServiceCategory)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class. Creates an empty <see cref="ServiceCategoryInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceCategoryInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceCategory, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceCategoryInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceCategoryInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceCategoryInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceCategory))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceCategory)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceCategoryInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceCategoryInfoSection ServiceCategoryInfo { get; set; }
+
+		public static explicit operator ServiceCategoryInstance(DomInstance instance)
+		{
+			return new ServiceCategoryInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceCategoryInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceCategoryInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceCategoryInstance Clone()
+		{
+			return new ServiceCategoryInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceCategoryInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceCategoryInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceCategoryInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceCategoryInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceCategoryInfo.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceCategoryInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id));
+			if (_serviceCategoryInfo is null)
+			{
+				ServiceCategoryInfo = new ServiceCategoryInfoSection();
+			}
+			else
+			{
+				ServiceCategoryInfo = new ServiceCategoryInfoSection(_serviceCategoryInfo);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceConfigurationInstance DOM instance.
+	/// The <see cref="ServiceConfigurationInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceConfigurationInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class. Creates an empty <see cref="ServiceConfigurationInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceConfigurationInstance() : base(SlcServicemanagementIds.Definitions.ServiceConfiguration)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class. Creates an empty <see cref="ServiceConfigurationInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceConfigurationInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceConfiguration, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceConfigurationInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceConfigurationInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceConfiguration))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceConfiguration)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceConfigurationParametersValues section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceConfigurationParametersValuesSection> ServiceConfigurationParametersValueses { get; private set; }
+
+		public static explicit operator ServiceConfigurationInstance(DomInstance instance)
+		{
+			return new ServiceConfigurationInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceConfigurationInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceConfigurationInstance Clone()
+		{
+			return new ServiceConfigurationInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceConfigurationInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceConfigurationInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceConfigurationInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			foreach (var item in ServiceConfigurationParametersValueses)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			ServiceConfigurationParametersValueses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)).Select(section => new ServiceConfigurationParametersValuesSection(section)).ToList();
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceSpecificationsInstance DOM instance.
+	/// The <see cref="ServiceSpecificationsInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceSpecificationsInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class. Creates an empty <see cref="ServiceSpecificationsInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceSpecificationsInstance() : base(SlcServicemanagementIds.Definitions.ServiceSpecifications)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class. Creates an empty <see cref="ServiceSpecificationsInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceSpecificationsInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceSpecifications, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceSpecificationsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceSpecificationsInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceSpecifications))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceSpecifications)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceSpecificationInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceSpecificationInfoSection ServiceSpecificationInfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceItemRelationship section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceItemRelationshipSection> ServiceItemRelationship { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceItems section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceItemsSection> ServiceItems { get; private set; }
+
+		public static explicit operator ServiceSpecificationsInstance(DomInstance instance)
+		{
+			return new ServiceSpecificationsInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceSpecificationsInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationsInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceSpecificationsInstance Clone()
+		{
+			return new ServiceSpecificationsInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceSpecificationsInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationsInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceSpecificationsInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceSpecificationsInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceSpecificationInfo.ToSection());
+			foreach (var item in ServiceItemRelationship)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			foreach (var item in ServiceItems)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceSpecificationInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id));
+			if (_serviceSpecificationInfo is null)
+			{
+				ServiceSpecificationInfo = new ServiceSpecificationInfoSection();
+			}
+			else
+			{
+				ServiceSpecificationInfo = new ServiceSpecificationInfoSection(_serviceSpecificationInfo);
+			}
+
+			ServiceItemRelationship = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)).Select(section => new ServiceItemRelationshipSection(section)).ToList();
+			ServiceItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItems.Id)).Select(section => new ServiceItemsSection(section)).ToList();
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemConfigurationValueInstance DOM instance.
+	/// The <see cref="ServiceOrderItemConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemConfigurationValueInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceOrderItemConfigurationValueInstance() : base(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceOrderItemConfigurationValueInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrderItemConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemConfigurationValueInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrderItemConfigurationValue)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItemConfigurationValue section of the DOM Instance.
+		/// </summary>
+		public ServiceOrderItemConfigurationValueSection ServiceOrderItemConfigurationValue { get; set; }
+
+		public static explicit operator ServiceOrderItemConfigurationValueInstance(DomInstance instance)
+		{
+			return new ServiceOrderItemConfigurationValueInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemConfigurationValueInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemConfigurationValueInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceOrderItemConfigurationValueInstance Clone()
+		{
+			return new ServiceOrderItemConfigurationValueInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemConfigurationValueInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemConfigurationValueInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceOrderItemConfigurationValueInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceOrderItemConfigurationValueInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceOrderItemConfigurationValue.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceOrderItemConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id));
+			if (_serviceOrderItemConfigurationValue is null)
+			{
+				ServiceOrderItemConfigurationValue = new ServiceOrderItemConfigurationValueSection();
+			}
+			else
+			{
+				ServiceOrderItemConfigurationValue = new ServiceOrderItemConfigurationValueSection(_serviceOrderItemConfigurationValue);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceSpecificationConfigurationValueInstance DOM instance.
+	/// The <see cref="ServiceSpecificationConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceSpecificationConfigurationValueInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceSpecificationConfigurationValueInstance() : base(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceSpecificationConfigurationValueInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceSpecificationConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceSpecificationConfigurationValueInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceSpecificationConfigurationValue)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceSpecificationConfigurationValue section of the DOM Instance.
+		/// </summary>
+		public ServiceSpecificationConfigurationValueSection ServiceSpecificationConfigurationValue { get; set; }
+
+		public static explicit operator ServiceSpecificationConfigurationValueInstance(DomInstance instance)
+		{
+			return new ServiceSpecificationConfigurationValueInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceSpecificationConfigurationValueInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationConfigurationValueInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceSpecificationConfigurationValueInstance Clone()
+		{
+			return new ServiceSpecificationConfigurationValueInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceSpecificationConfigurationValueInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationConfigurationValueInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceSpecificationConfigurationValueInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceSpecificationConfigurationValueInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceSpecificationConfigurationValue.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceSpecificationConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id));
+			if (_serviceSpecificationConfigurationValue is null)
+			{
+				ServiceSpecificationConfigurationValue = new ServiceSpecificationConfigurationValueSection();
+			}
+			else
+			{
+				ServiceSpecificationConfigurationValue = new ServiceSpecificationConfigurationValueSection(_serviceSpecificationConfigurationValue);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicePropertiesInstance DOM instance.
+	/// The <see cref="ServicePropertiesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicePropertiesInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class. Creates an empty <see cref="ServicePropertiesInstance"/> instance with default settings.
+		/// </summary>
+		public ServicePropertiesInstance() : base(SlcServicemanagementIds.Definitions.ServiceProperties)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class. Creates an empty <see cref="ServicePropertiesInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServicePropertiesInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceProperties, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertiesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicePropertiesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicePropertiesInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceProperties))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceProperties)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the DiscreteServicePropertyValueOptions section of the DOM Instance.
+		/// </summary>
+		public IList<DiscreteServicePropertyValueOptionsSection> DiscreteServicePropertyValueOptions { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the ServicePropertyInfo section of the DOM Instance.
+		/// </summary>
+		public ServicePropertyInfoSection ServicePropertyInfo { get; set; }
+
+		public static explicit operator ServicePropertiesInstance(DomInstance instance)
+		{
+			return new ServicePropertiesInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicePropertiesInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertiesInstance"/> object that is a deep copy of this instance.</returns>
+		public ServicePropertiesInstance Clone()
+		{
+			return new ServicePropertiesInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicePropertiesInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertiesInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServicePropertiesInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServicePropertiesInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			foreach (var item in DiscreteServicePropertyValueOptions)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			domInstance.Sections.Add(ServicePropertyInfo.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			DiscreteServicePropertyValueOptions = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)).Select(section => new DiscreteServicePropertyValueOptionsSection(section)).ToList();
+			var _servicePropertyInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServicePropertyInfo.Id));
+			if (_servicePropertyInfo is null)
+			{
+				ServicePropertyInfo = new ServicePropertyInfoSection();
+			}
+			else
+			{
+				ServicePropertyInfo = new ServicePropertyInfoSection(_servicePropertyInfo);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicePropertyValuesInstance DOM instance.
+	/// The <see cref="ServicePropertyValuesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicePropertyValuesInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class. Creates an empty <see cref="ServicePropertyValuesInstance"/> instance with default settings.
+		/// </summary>
+		public ServicePropertyValuesInstance() : base(SlcServicemanagementIds.Definitions.ServicePropertyValues)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class. Creates an empty <see cref="ServicePropertyValuesInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServicePropertyValuesInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServicePropertyValues, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValuesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicePropertyValuesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicePropertyValuesInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServicePropertyValues))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServicePropertyValues)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServicePropertyValue section of the DOM Instance.
+		/// </summary>
+		public IList<ServicePropertyValueSection> ServicePropertyValue { get; private set; }
+
+		public static explicit operator ServicePropertyValuesInstance(DomInstance instance)
+		{
+			return new ServicePropertyValuesInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicePropertyValuesInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValuesInstance"/> object that is a deep copy of this instance.</returns>
+		public ServicePropertyValuesInstance Clone()
+		{
+			return new ServicePropertyValuesInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicePropertyValuesInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValuesInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServicePropertyValuesInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServicePropertyValuesInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			foreach (var item in ServicePropertyValue)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			ServicePropertyValue = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServicePropertyValue.Id)).Select(section => new ServicePropertyValueSection(section)).ToList();
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicesInstance DOM instance.
+	/// The <see cref="ServicesInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicesInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicesInstance"/> class. Creates an empty <see cref="ServicesInstance"/> instance with default settings.
+		/// </summary>
+		public ServicesInstance() : base(SlcServicemanagementIds.Definitions.Services)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicesInstance"/> class. Creates an empty <see cref="ServicesInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServicesInstance(Guid id) : base(SlcServicemanagementIds.Definitions.Services, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServicesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicesInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.Services))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.Services)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets the Status ID of the DOM Instance.
+		/// </summary>
+		public SlcServicemanagementIds.Behaviors.Service_Behavior.StatusesEnum Status
+		{
+			get
+			{
+				return SlcServicemanagementIds.Behaviors.Service_Behavior.Statuses.ToEnum(StatusId);
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceInfoSection ServiceInfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceItemRelationship section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceItemRelationshipSection> ServiceItemRelationship { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceItems section of the DOM Instance.
+		/// </summary>
+		public IList<ServiceItemsSection> ServiceItems { get; private set; }
+
+		public static explicit operator ServicesInstance(DomInstance instance)
+		{
+			return new ServicesInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicesInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicesInstance"/> object that is a deep copy of this instance.</returns>
+		public ServicesInstance Clone()
+		{
+			return new ServicesInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicesInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicesInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServicesInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServicesInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceInfo.ToSection());
+			foreach (var item in ServiceItemRelationship)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			foreach (var item in ServiceItems)
+			{
+				domInstance.Sections.Add(item.ToSection());
+			}
+
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceInfo.Id));
+			if (_serviceInfo is null)
+			{
+				ServiceInfo = new ServiceInfoSection();
+			}
+			else
+			{
+				ServiceInfo = new ServiceInfoSection(_serviceInfo);
+			}
+
+			ServiceItemRelationship = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)).Select(section => new ServiceItemRelationshipSection(section)).ToList();
+			ServiceItems = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItems.Id)).Select(section => new ServiceItemsSection(section)).ToList();
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceConfigurationValueInstance DOM instance.
+	/// The <see cref="ServiceConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceConfigurationValueInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceConfigurationValueInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceConfigurationValueInstance() : base(SlcServicemanagementIds.Definitions.ServiceConfigurationValue)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceConfigurationValueInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceConfigurationValueInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceConfigurationValue, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceConfigurationValueInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceConfigurationValue))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceConfigurationValue)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceConfigurationValue section of the DOM Instance.
+		/// </summary>
+		public ServiceConfigurationValueSection ServiceConfigurationValue { get; set; }
+
+		public static explicit operator ServiceConfigurationValueInstance(DomInstance instance)
+		{
+			return new ServiceConfigurationValueInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceConfigurationValueInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationValueInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceConfigurationValueInstance Clone()
+		{
+			return new ServiceConfigurationValueInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceConfigurationValueInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationValueInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceConfigurationValueInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceConfigurationValueInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceConfigurationValue.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id));
+			if (_serviceConfigurationValue is null)
+			{
+				ServiceConfigurationValue = new ServiceConfigurationValueSection();
+			}
+			else
+			{
+				ServiceConfigurationValue = new ServiceConfigurationValueSection(_serviceConfigurationValue);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceItemConfigurationValueInstance DOM instance.
+	/// The <see cref="ServiceItemConfigurationValueInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceItemConfigurationValueInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceItemConfigurationValueInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceItemConfigurationValueInstance() : base(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class. Creates an empty <see cref="ServiceItemConfigurationValueInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceItemConfigurationValueInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemConfigurationValueInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceItemConfigurationValueInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceItemConfigurationValueInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceItemConfigurationValue)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceItemConfigurationValue section of the DOM Instance.
+		/// </summary>
+		public ServiceItemConfigurationValueSection ServiceItemConfigurationValue { get; set; }
+
+		public static explicit operator ServiceItemConfigurationValueInstance(DomInstance instance)
+		{
+			return new ServiceItemConfigurationValueInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceItemConfigurationValueInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemConfigurationValueInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceItemConfigurationValueInstance Clone()
+		{
+			return new ServiceItemConfigurationValueInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceItemConfigurationValueInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemConfigurationValueInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceItemConfigurationValueInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceItemConfigurationValueInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceItemConfigurationValue.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceItemConfigurationValue = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id));
+			if (_serviceItemConfigurationValue is null)
+			{
+				ServiceItemConfigurationValue = new ServiceItemConfigurationValueSection();
+			}
+			else
+			{
+				ServiceItemConfigurationValue = new ServiceItemConfigurationValueSection(_serviceItemConfigurationValue);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemsInstance DOM instance.
+	/// The <see cref="ServiceOrderItemsInstance"/> class provides simplified access to the data and functionality of the underlying DOM instance, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemsInstance : DomInstanceBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class. Creates an empty <see cref="ServiceOrderItemsInstance"/> instance with default settings.
+		/// </summary>
+		public ServiceOrderItemsInstance() : base(SlcServicemanagementIds.Definitions.ServiceOrderItems)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class. Creates an empty <see cref="ServiceOrderItemsInstance"/> instance with default settings and a specific ID.
+		/// </summary>
+		public ServiceOrderItemsInstance(Guid id) : base(SlcServicemanagementIds.Definitions.ServiceOrderItems, id)
+		{
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
+		/// </summary>
+		/// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ServiceOrderItemsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemsInstance(DomInstance domInstance) : base(domInstance)
+		{
+			if (!domInstance.DomDefinitionId.Equals(SlcServicemanagementIds.Definitions.ServiceOrderItems))
+				throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcServicemanagementIds.Definitions.ServiceOrderItems)}'", nameof(domInstance));
+			InitializeProperties();
+			AfterLoad();
+		}
+
+		/// <summary>
+		/// Gets the Status ID of the DOM Instance.
+		/// </summary>
+		public SlcServicemanagementIds.Behaviors.Serviceorderitem_Behavior.StatusesEnum Status
+		{
+			get
+			{
+				return SlcServicemanagementIds.Behaviors.Serviceorderitem_Behavior.Statuses.ToEnum(StatusId);
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItemServiceInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceOrderItemServiceInfoSection ServiceOrderItemServiceInfo { get; set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItemInfo section of the DOM Instance.
+		/// </summary>
+		public ServiceOrderItemInfoSection ServiceOrderItemInfo { get; set; }
+
+		public static explicit operator ServiceOrderItemsInstance(DomInstance instance)
+		{
+			return new ServiceOrderItemsInstance(instance);
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemsInstance"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemsInstance"/> object that is a deep copy of this instance.</returns>
+		public ServiceOrderItemsInstance Clone()
+		{
+			return new ServiceOrderItemsInstance((DomInstance)this.ToInstance().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemsInstance"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemsInstance"/> object that is a copy of this instance but with a different id.</returns>
+		public ServiceOrderItemsInstance Duplicate()
+		{
+			var instance = (DomInstance)this.ToInstance().Clone();
+			instance.ID = new DomInstanceId(Guid.NewGuid())
+			{ ModuleId = ModuleId };
+			foreach (var section in instance.Sections)
+			{
+				section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+			}
+
+			return new ServiceOrderItemsInstance(instance);
+		}
+
+		/// <inheritdoc />
+		protected sealed override DomInstance InternalToInstance()
+		{
+			domInstance.Sections.Clear();
+			domInstance.Sections.Add(ServiceOrderItemServiceInfo.ToSection());
+			domInstance.Sections.Add(ServiceOrderItemInfo.ToSection());
+			return domInstance;
+		}
+
+		/// <inheritdoc />
+		public sealed override void Save(DomHelper helper)
+		{
+			var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
+			var instance = ToInstance();
+			if (exist == null)
+			{
+				domInstance = helper.DomInstances.Create(instance);
+			}
+			else
+			{
+				domInstance = helper.DomInstances.Update(instance);
+			}
+		}
+
+		protected sealed override void InitializeProperties()
+		{
+			var _serviceOrderItemServiceInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id));
+			if (_serviceOrderItemServiceInfo is null)
+			{
+				ServiceOrderItemServiceInfo = new ServiceOrderItemServiceInfoSection();
+			}
+			else
+			{
+				ServiceOrderItemServiceInfo = new ServiceOrderItemServiceInfoSection(_serviceOrderItemServiceInfo);
+			}
+
+			var _serviceOrderItemInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id));
+			if (_serviceOrderItemInfo is null)
+			{
+				ServiceOrderItemInfo = new ServiceOrderItemInfoSection();
+			}
+			else
+			{
+				ServiceOrderItemInfo = new ServiceOrderItemInfoSection(_serviceOrderItemInfo);
+			}
+		}
+	}
 }
 //------------------------------------------------------------------------------
 // <auto-generated>
@@ -2746,3495 +3119,3856 @@ namespace DomHelpers.SlcServicemanagement
 //------------------------------------------------------------------------------
 namespace DomHelpers.SlcServicemanagement
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Collections.ObjectModel;
-    using System.Linq;
-    using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-    using Skyline.DataMiner.Net.Apps.Sections.Sections;
-    using Skyline.DataMiner.Net.Messages;
-    using Skyline.DataMiner.Net.Sections;
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicePropertyValueSection section.
-    /// The <see cref="ServicePropertyValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicePropertyValueSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValueSection"/> class. Creates an empty <see cref="ServicePropertyValueSection"/> object with default settings.
-        /// </summary>
-        public ServicePropertyValueSection(): base(SlcServicemanagementIds.Sections.ServicePropertyValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicePropertyValueSection(Section section): base(section, SlcServicemanagementIds.Sections.ServicePropertyValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the PropertyName field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String PropertyName
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Value field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Value
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValue.Value);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.Value);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.Value, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Property field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? Property
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServicePropertyValue.Property);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.Property);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.Property, (Guid)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceConfigurationValueSection section.
-    /// The <see cref="ServiceConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceConfigurationValueSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationValueSection"/> class. Creates an empty <see cref="ServiceConfigurationValueSection"/> object with default settings.
-        /// </summary>
-        public ServiceConfigurationValueSection(): base(SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceConfigurationValueSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ConfigurationParameterValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the MandatoryAtServiceLevel field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? MandatoryAtServiceLevel
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel, (Boolean)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a DiscreteServicePropertyValueOptionsSection section.
-    /// The <see cref="DiscreteServicePropertyValueOptionsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class DiscreteServicePropertyValueOptionsSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DiscreteServicePropertyValueOptionsSection"/> class. Creates an empty <see cref="DiscreteServicePropertyValueOptionsSection"/> object with default settings.
-        /// </summary>
-        public DiscreteServicePropertyValueOptionsSection(): base(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DiscreteServicePropertyValueOptionsSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="DiscreteServicePropertyValueOptionsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public DiscreteServicePropertyValueOptionsSection(Section section): base(section, SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the DiscreteValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String DiscreteValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderInfoSection section.
-    /// The <see cref="ServiceOrderInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderInfoSection"/> class. Creates an empty <see cref="ServiceOrderInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceOrderInfoSection(): base(SlcServicemanagementIds.Sections.ServiceOrderInfo.Id)
-        {
-            OrderContact = new List<Guid>();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceOrderInfo.Id)
-        {
-            var orderContact = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact);
-            OrderContact = orderContact != null ? orderContact.Values : new List<Guid>();
-        }
-
-        /// <summary>
-        /// Gets or sets the Name field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Name
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ExternalID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ExternalID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Priority field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public SlcServicemanagementIds.Enums.ServiceorderpriorityEnum? Priority
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority);
-                if (wrapper != null)
-                {
-                    return (SlcServicemanagementIds.Enums.ServiceorderpriorityEnum? )SlcServicemanagementIds.Enums.Serviceorderpriority.ToEnum(wrapper.Value);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority, SlcServicemanagementIds.Enums.Serviceorderpriority.ToValue((SlcServicemanagementIds.Enums.ServiceorderpriorityEnum)value));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Description field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Description
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the RelatedOrganization field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? RelatedOrganization
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the OrderContact field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public IList<Guid> OrderContact { get; private set; }
-
-        /// <inheritdoc />
-        protected override Section InternalToSection()
-        {
-            if (OrderContact.Count == 0)
-                section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact);
-            else
-                section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact, OrderContact.ToList());
-            return section;
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemConfigurationValueSection section.
-    /// The <see cref="ServiceOrderItemConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemConfigurationValueSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueSection"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueSection"/> object with default settings.
-        /// </summary>
-        public ServiceOrderItemConfigurationValueSection(): base(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemConfigurationValueSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ConfigurationParameterValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the MandatoryAtServiceOrderLevel field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? MandatoryAtServiceOrderLevel
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel, (Boolean)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceSpecificationConfigurationValueSection section.
-    /// The <see cref="ServiceSpecificationConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceSpecificationConfigurationValueSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueSection"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueSection"/> object with default settings.
-        /// </summary>
-        public ServiceSpecificationConfigurationValueSection(): base(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceSpecificationConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceSpecificationConfigurationValueSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ConfigurationParameterValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the MandatoryAtServiceLevel field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? MandatoryAtServiceLevel
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel, (Boolean)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ExposeAtServiceOrderLevel field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? ExposeAtServiceOrderLevel
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel, (Boolean)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the MandatoryAtServiceOrderLevel field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? MandatoryAtServiceOrderLevel
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel, (Boolean)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceSpecificationInfoSection section.
-    /// The <see cref="ServiceSpecificationInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceSpecificationInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationInfoSection"/> class. Creates an empty <see cref="ServiceSpecificationInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceSpecificationInfoSection(): base(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id)
-        {
-            ServiceSpecificationConfigurationParameters = new List<Guid>();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceSpecificationInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceSpecificationInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceSpecificationInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id)
-        {
-            var serviceSpecificationConfigurationParameters = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters);
-            ServiceSpecificationConfigurationParameters = serviceSpecificationConfigurationParameters != null ? serviceSpecificationConfigurationParameters.Values : new List<Guid>();
-        }
-
-        /// <summary>
-        /// Gets or sets the SpecificationName field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String SpecificationName
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Icon field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Icon
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Description field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Description
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceProperties field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceProperties
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceSpecificationConfigurationParameters field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public IList<Guid> ServiceSpecificationConfigurationParameters { get; private set; }
-
-        /// <inheritdoc />
-        protected override Section InternalToSection()
-        {
-            if (ServiceSpecificationConfigurationParameters.Count == 0)
-                section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters);
-            else
-                section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters, ServiceSpecificationConfigurationParameters.ToList());
-            return section;
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicePropertyValueInfoSection section.
-    /// The <see cref="ServicePropertyValueInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicePropertyValueInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValueInfoSection"/> class. Creates an empty <see cref="ServicePropertyValueInfoSection"/> object with default settings.
-        /// </summary>
-        public ServicePropertyValueInfoSection(): base(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyValueInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyValueInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicePropertyValueInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServicePropertyValueInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the LinkedObjectID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String LinkedObjectID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the LinkedObjectDOMModule field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String LinkedObjectDOMModule
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceInfoSection section.
-    /// The <see cref="ServiceInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceInfoSection"/> class. Creates an empty <see cref="ServiceInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceInfoSection(): base(SlcServicemanagementIds.Sections.ServiceInfo.Id)
-        {
-            ServiceConfigurationParameters = new List<Guid>();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceInfo.Id)
-        {
-            var serviceConfigurationParameters = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters);
-            ServiceConfigurationParameters = serviceConfigurationParameters != null ? serviceConfigurationParameters.Values : new List<Guid>();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceName field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ServiceName
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Description field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Description
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.Description);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.Description);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.Description, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceStartTime field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public DateTime? ServiceStartTime
-        {
-            get
-            {
-                var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime);
-                if (wrapper != null)
-                {
-                    return (DateTime? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime, (DateTime)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceEndTime field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public DateTime? ServiceEndTime
-        {
-            get
-            {
-                var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime);
-                if (wrapper != null)
-                {
-                    return (DateTime? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime, (DateTime)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Icon field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Icon
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.Icon);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.Icon);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.Icon, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceSpecifcation field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceSpecifcation
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceProperties field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceProperties
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the RelatedOrganization field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? RelatedOrganization
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceCategory field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceCategory
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceConfigurationParameters field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public IList<Guid> ServiceConfigurationParameters { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the ServiceID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ServiceID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID, (String)value);
-                }
-            }
-        }
-
-        /// <inheritdoc />
-        protected override Section InternalToSection()
-        {
-            if (ServiceConfigurationParameters.Count == 0)
-                section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters);
-            else
-                section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters, ServiceConfigurationParameters.ToList());
-            return section;
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceItemRelationshipSection section.
-    /// The <see cref="ServiceItemRelationshipSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceItemRelationshipSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemRelationshipSection"/> class. Creates an empty <see cref="ServiceItemRelationshipSection"/> object with default settings.
-        /// </summary>
-        public ServiceItemRelationshipSection(): base(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemRelationshipSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemRelationshipSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceItemRelationshipSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Type field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Type
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ParentServiceItem field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ParentServiceItem
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ChildServiceItem field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ChildServiceItem
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ParentServiceItemInterfaceID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ParentServiceItemInterfaceID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ChildServiceItemInterfaceID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ChildServiceItemInterfaceID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceConfigurationParametersValuesSection section.
-    /// The <see cref="ServiceConfigurationParametersValuesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceConfigurationParametersValuesSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationParametersValuesSection"/> class. Creates an empty <see cref="ServiceConfigurationParametersValuesSection"/> object with default settings.
-        /// </summary>
-        public ServiceConfigurationParametersValuesSection(): base(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceConfigurationParametersValuesSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceConfigurationParametersValuesSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceConfigurationParametersValuesSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Label field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Label
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceParameterID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ServiceParameterID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ProfileParameterID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ProfileParameterID
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Mandatory field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? Mandatory
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory, (Boolean)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the StringValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String StringValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the DoubleValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Double? DoubleValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<Double>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue);
-                if (wrapper != null)
-                {
-                    return (Double? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue, (Double)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceCategoryInfoSection section.
-    /// The <see cref="ServiceCategoryInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceCategoryInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceCategoryInfoSection"/> class. Creates an empty <see cref="ServiceCategoryInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceCategoryInfoSection(): base(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceCategoryInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceCategoryInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceCategoryInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Name field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Name
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Type field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Type
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Icon field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Icon
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServicePropertyInfoSection section.
-    /// The <see cref="ServicePropertyInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServicePropertyInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyInfoSection"/> class. Creates an empty <see cref="ServicePropertyInfoSection"/> object with default settings.
-        /// </summary>
-        public ServicePropertyInfoSection(): base(SlcServicemanagementIds.Sections.ServicePropertyInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServicePropertyInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServicePropertyInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServicePropertyInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Name field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Name
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Type field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public SlcServicemanagementIds.Enums.TypeEnum? Type
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type);
-                if (wrapper != null)
-                {
-                    return (SlcServicemanagementIds.Enums.TypeEnum? )SlcServicemanagementIds.Enums.Type.ToEnum(wrapper.Value);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type, SlcServicemanagementIds.Enums.Type.ToValue((SlcServicemanagementIds.Enums.TypeEnum)value));
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemsSection section.
-    /// The <see cref="ServiceOrderItemsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemsSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemsSection"/> class. Creates an empty <see cref="ServiceOrderItemsSection"/> object with default settings.
-        /// </summary>
-        public ServiceOrderItemsSection(): base(SlcServicemanagementIds.Sections.ServiceOrderItems.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemsSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemsSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceOrderItems.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItem field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceOrderItem
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the PriorityOrder field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Int64? PriorityOrder
-        {
-            get
-            {
-                var wrapper = section.GetValue<Int64>(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder);
-                if (wrapper != null)
-                {
-                    return (Int64? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder, (Int64)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceItemConfigurationValueSection section.
-    /// The <see cref="ServiceItemConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceItemConfigurationValueSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemConfigurationValueSection"/> class. Creates an empty <see cref="ServiceItemConfigurationValueSection"/> object with default settings.
-        /// </summary>
-        public ServiceItemConfigurationValueSection(): base(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceItemConfigurationValueSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ConfigurationParameterValue
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the WorkflowParamterReference field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String WorkflowParamterReference
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemServiceInfoSection section.
-    /// The <see cref="ServiceOrderItemServiceInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemServiceInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemServiceInfoSection"/> class. Creates an empty <see cref="ServiceOrderItemServiceInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceOrderItemServiceInfoSection(): base(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id)
-        {
-            ServiceOrderItemConfigurations = new List<Guid>();
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemServiceInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemServiceInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemServiceInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id)
-        {
-            var serviceOrderItemConfigurations = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations);
-            ServiceOrderItemConfigurations = serviceOrderItemConfigurations != null ? serviceOrderItemConfigurations.Values : new List<Guid>();
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceCategory field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceCategory
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceSpecification field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? ServiceSpecification
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Service field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? Service
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Properties field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Guid? Properties
-        {
-            get
-            {
-                var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties);
-                if (wrapper != null)
-                {
-                    return (Guid? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties, (Guid)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceOrderItemConfigurations field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public IList<Guid> ServiceOrderItemConfigurations { get; private set; }
-
-        /// <inheritdoc />
-        protected override Section InternalToSection()
-        {
-            if (ServiceOrderItemConfigurations.Count == 0)
-                section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations);
-            else
-                section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations, ServiceOrderItemConfigurations.ToList());
-            return section;
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceItemsSection section.
-    /// The <see cref="ServiceItemsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceItemsSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemsSection"/> class. Creates an empty <see cref="ServiceItemsSection"/> object with default settings.
-        /// </summary>
-        public ServiceItemsSection(): base(SlcServicemanagementIds.Sections.ServiceItems.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceItemsSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceItemsSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceItems.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Label field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Label
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.Label);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.Label);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.Label, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemID field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Int64? ServiceItemID
-        {
-            get
-            {
-                var wrapper = section.GetValue<Int64>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID);
-                if (wrapper != null)
-                {
-                    return (Int64? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID, (Int64)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemType field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public SlcServicemanagementIds.Enums.ServiceitemtypesEnum? ServiceItemType
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType);
-                if (wrapper != null)
-                {
-                    return (SlcServicemanagementIds.Enums.ServiceitemtypesEnum? )SlcServicemanagementIds.Enums.Serviceitemtypes.ToEnum(wrapper.Value);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType, SlcServicemanagementIds.Enums.Serviceitemtypes.ToValue((SlcServicemanagementIds.Enums.ServiceitemtypesEnum)value));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the DefinitionReference field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String DefinitionReference
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceItemScript field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ServiceItemScript
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ImplementationReference field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String ImplementationReference
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference, (String)value);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Represents a wrapper class for accessing a ServiceOrderItemInfoSection section.
-    /// The <see cref="ServiceOrderItemInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
-    /// </summary>
-    public partial class ServiceOrderItemInfoSection : DomSectionBase
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemInfoSection"/> class. Creates an empty <see cref="ServiceOrderItemInfoSection"/> object with default settings.
-        /// </summary>
-        public ServiceOrderItemInfoSection(): base(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ServiceOrderItemInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
-        /// </summary>
-        /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ServiceOrderItemInfoSection(Section section): base(section, SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id)
-        {
-        }
-
-        /// <summary>
-        /// Gets or sets the Name field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Name
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the Action field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public String Action
-        {
-            get
-            {
-                var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action);
-                if (wrapper != null)
-                {
-                    return (String)wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action, (String)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceStartTime field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public DateTime? ServiceStartTime
-        {
-            get
-            {
-                var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime);
-                if (wrapper != null)
-                {
-                    return (DateTime? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime, (DateTime)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceEndTime field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public DateTime? ServiceEndTime
-        {
-            get
-            {
-                var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime);
-                if (wrapper != null)
-                {
-                    return (DateTime? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime, (DateTime)value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the ServiceIndefiniteRuntime field of the DOM Instance.
-        /// </summary>
-        /// <remarks>
-        /// When retrieving the value:
-        /// <list type="bullet">
-        /// <item>If the field has been set, it will return the value.</item>
-        /// <item>If the field is not set it will return <see langword="null"/>.</item>
-        /// </list>
-        /// When setting the value:
-        /// <list type="bullet">
-        /// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
-        /// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
-        /// </list>
-        /// </remarks>
-        public Boolean? ServiceIndefiniteRuntime
-        {
-            get
-            {
-                var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime);
-                if (wrapper != null)
-                {
-                    return (Boolean? )wrapper.Value;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-
-            set
-            {
-                if (value == null)
-                {
-                    section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime);
-                }
-                else
-                {
-                    section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime, (Boolean)value);
-                }
-            }
-        }
-    }
+	using System;
+	using System.Collections.Generic;
+	using System.Collections.ObjectModel;
+	using System.Linq;
+
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Apps.Sections.Sections;
+	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Sections;
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicePropertyValueSection section.
+	/// The <see cref="ServicePropertyValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicePropertyValueSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValueSection"/> class. Creates an empty <see cref="ServicePropertyValueSection"/> object with default settings.
+		/// </summary>
+		public ServicePropertyValueSection() : base(SlcServicemanagementIds.Sections.ServicePropertyValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicePropertyValueSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServicePropertyValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the PropertyName field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String PropertyName
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.PropertyName, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Value field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Value
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValue.Value);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.Value);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.Value, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Property field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? Property
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServicePropertyValue.Property);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValue.Property);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValue.Property, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicePropertyValueSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValueSection"/> object that is a deep copy of this section.</returns>
+		public ServicePropertyValueSection Clone()
+		{
+			return new ServicePropertyValueSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicePropertyValueSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValueSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServicePropertyValueSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServicePropertyValueSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceConfigurationValueSection section.
+	/// The <see cref="ServiceConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceConfigurationValueSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationValueSection"/> class. Creates an empty <see cref="ServiceConfigurationValueSection"/> object with default settings.
+		/// </summary>
+		public ServiceConfigurationValueSection() : base(SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceConfigurationValueSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ConfigurationParameterValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationValue.ConfigurationParameterValue, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the MandatoryAtServiceLevel field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? MandatoryAtServiceLevel
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationValue.MandatoryAtServiceLevel, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceConfigurationValueSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationValueSection"/> object that is a deep copy of this section.</returns>
+		public ServiceConfigurationValueSection Clone()
+		{
+			return new ServiceConfigurationValueSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceConfigurationValueSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationValueSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceConfigurationValueSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceConfigurationValueSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a DiscreteServicePropertyValueOptionsSection section.
+	/// The <see cref="DiscreteServicePropertyValueOptionsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class DiscreteServicePropertyValueOptionsSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DiscreteServicePropertyValueOptionsSection"/> class. Creates an empty <see cref="DiscreteServicePropertyValueOptionsSection"/> object with default settings.
+		/// </summary>
+		public DiscreteServicePropertyValueOptionsSection() : base(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="DiscreteServicePropertyValueOptionsSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="DiscreteServicePropertyValueOptionsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public DiscreteServicePropertyValueOptionsSection(Section section) : base(section, SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the DiscreteValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String DiscreteValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.DiscreteServicePropertyValueOptions.DiscreteValue, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="DiscreteServicePropertyValueOptionsSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="DiscreteServicePropertyValueOptionsSection"/> object that is a deep copy of this section.</returns>
+		public DiscreteServicePropertyValueOptionsSection Clone()
+		{
+			return new DiscreteServicePropertyValueOptionsSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="DiscreteServicePropertyValueOptionsSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="DiscreteServicePropertyValueOptionsSection"/> object that is a copy of this section but with a different id.</returns>
+		public DiscreteServicePropertyValueOptionsSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new DiscreteServicePropertyValueOptionsSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderInfoSection section.
+	/// The <see cref="ServiceOrderInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderInfoSection"/> class. Creates an empty <see cref="ServiceOrderInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceOrderInfoSection() : base(SlcServicemanagementIds.Sections.ServiceOrderInfo.Id)
+		{
+			OrderContact = new List<Guid>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceOrderInfo.Id)
+		{
+			var orderContact = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact);
+			OrderContact = orderContact != null ? orderContact.Values : new List<Guid>();
+		}
+
+		/// <summary>
+		/// Gets or sets the Name field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Name
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Name, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.ID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ExternalID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ExternalID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.ExternalID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Priority field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcServicemanagementIds.Enums.ServiceorderpriorityEnum? Priority
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority);
+				if (wrapper != null)
+				{
+					return (SlcServicemanagementIds.Enums.ServiceorderpriorityEnum?)SlcServicemanagementIds.Enums.Serviceorderpriority.ToEnum(wrapper.Value);
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Priority, SlcServicemanagementIds.Enums.Serviceorderpriority.ToValue((SlcServicemanagementIds.Enums.ServiceorderpriorityEnum)value));
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Description field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Description
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.Description, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the RelatedOrganization field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? RelatedOrganization
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderInfo.RelatedOrganization, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the OrderContact field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public IList<Guid> OrderContact { get; private set; }
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceOrderInfoSection Clone()
+		{
+			return new ServiceOrderInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceOrderInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceOrderInfoSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (OrderContact.Count == 0)
+				section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact);
+			else
+				section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderInfo.OrderContact, OrderContact.ToList());
+			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemConfigurationValueSection section.
+	/// The <see cref="ServiceOrderItemConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemConfigurationValueSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueSection"/> class. Creates an empty <see cref="ServiceOrderItemConfigurationValueSection"/> object with default settings.
+		/// </summary>
+		public ServiceOrderItemConfigurationValueSection() : base(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemConfigurationValueSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ConfigurationParameterValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.ConfigurationParameterValue, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the MandatoryAtServiceOrderLevel field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? MandatoryAtServiceOrderLevel
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemConfigurationValue.MandatoryAtServiceOrderLevel, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemConfigurationValueSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemConfigurationValueSection"/> object that is a deep copy of this section.</returns>
+		public ServiceOrderItemConfigurationValueSection Clone()
+		{
+			return new ServiceOrderItemConfigurationValueSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemConfigurationValueSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemConfigurationValueSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceOrderItemConfigurationValueSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceOrderItemConfigurationValueSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceSpecificationConfigurationValueSection section.
+	/// The <see cref="ServiceSpecificationConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceSpecificationConfigurationValueSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueSection"/> class. Creates an empty <see cref="ServiceSpecificationConfigurationValueSection"/> object with default settings.
+		/// </summary>
+		public ServiceSpecificationConfigurationValueSection() : base(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceSpecificationConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceSpecificationConfigurationValueSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ConfigurationParameterValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ConfigurationParameterValue, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the MandatoryAtServiceLevel field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? MandatoryAtServiceLevel
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceLevel, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ExposeAtServiceOrderLevel field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? ExposeAtServiceOrderLevel
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.ExposeAtServiceOrderLevel, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the MandatoryAtServiceOrderLevel field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? MandatoryAtServiceOrderLevel
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationConfigurationValue.MandatoryAtServiceOrderLevel, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceSpecificationConfigurationValueSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationConfigurationValueSection"/> object that is a deep copy of this section.</returns>
+		public ServiceSpecificationConfigurationValueSection Clone()
+		{
+			return new ServiceSpecificationConfigurationValueSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceSpecificationConfigurationValueSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationConfigurationValueSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceSpecificationConfigurationValueSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceSpecificationConfigurationValueSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceSpecificationInfoSection section.
+	/// The <see cref="ServiceSpecificationInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceSpecificationInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationInfoSection"/> class. Creates an empty <see cref="ServiceSpecificationInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceSpecificationInfoSection() : base(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id)
+		{
+			ServiceSpecificationConfigurationParameters = new List<Guid>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceSpecificationInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceSpecificationInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceSpecificationInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Id)
+		{
+			var serviceSpecificationConfigurationParameters = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters);
+			ServiceSpecificationConfigurationParameters = serviceSpecificationConfigurationParameters != null ? serviceSpecificationConfigurationParameters.Values : new List<Guid>();
+		}
+
+		/// <summary>
+		/// Gets or sets the SpecificationName field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String SpecificationName
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.SpecificationName, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Icon field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Icon
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Icon, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Description field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Description
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.Description, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceProperties field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceProperties
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceProperties, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceSpecificationConfigurationParameters field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public IList<Guid> ServiceSpecificationConfigurationParameters { get; private set; }
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceSpecificationInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceSpecificationInfoSection Clone()
+		{
+			return new ServiceSpecificationInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceSpecificationInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceSpecificationInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceSpecificationInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceSpecificationInfoSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (ServiceSpecificationConfigurationParameters.Count == 0)
+				section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters);
+			else
+				section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceSpecificationInfo.ServiceSpecificationConfigurationParameters, ServiceSpecificationConfigurationParameters.ToList());
+			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicePropertyValueInfoSection section.
+	/// The <see cref="ServicePropertyValueInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicePropertyValueInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValueInfoSection"/> class. Creates an empty <see cref="ServicePropertyValueInfoSection"/> object with default settings.
+		/// </summary>
+		public ServicePropertyValueInfoSection() : base(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyValueInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyValueInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicePropertyValueInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServicePropertyValueInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the LinkedObjectID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String LinkedObjectID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the LinkedObjectDOMModule field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String LinkedObjectDOMModule
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyValueInfo.LinkedObjectDOMModule, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicePropertyValueInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValueInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServicePropertyValueInfoSection Clone()
+		{
+			return new ServicePropertyValueInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicePropertyValueInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyValueInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServicePropertyValueInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServicePropertyValueInfoSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceInfoSection section.
+	/// The <see cref="ServiceInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceInfoSection"/> class. Creates an empty <see cref="ServiceInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceInfoSection() : base(SlcServicemanagementIds.Sections.ServiceInfo.Id)
+		{
+			ServiceConfigurationParameters = new List<Guid>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceInfo.Id)
+		{
+			var serviceConfigurationParameters = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters);
+			ServiceConfigurationParameters = serviceConfigurationParameters != null ? serviceConfigurationParameters.Values : new List<Guid>();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceName field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ServiceName
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceName, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Description field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Description
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.Description);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.Description);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.Description, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceStartTime field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public DateTime? ServiceStartTime
+		{
+			get
+			{
+				var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime);
+				if (wrapper != null)
+				{
+					return (DateTime?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceStartTime, (DateTime)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceEndTime field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public DateTime? ServiceEndTime
+		{
+			get
+			{
+				var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime);
+				if (wrapper != null)
+				{
+					return (DateTime?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceEndTime, (DateTime)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Icon field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Icon
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.Icon);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.Icon);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.Icon, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceSpecifcation field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceSpecifcation
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceSpecifcation, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceProperties field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceProperties
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceProperties, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the RelatedOrganization field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? RelatedOrganization
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.RelatedOrganization, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceCategory field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceCategory
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceCategory, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceConfigurationParameters field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public IList<Guid> ServiceConfigurationParameters { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the ServiceID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ServiceID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceInfo.ServiceID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceInfoSection Clone()
+		{
+			return new ServiceInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceInfoSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (ServiceConfigurationParameters.Count == 0)
+				section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters);
+			else
+				section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceInfo.ServiceConfigurationParameters, ServiceConfigurationParameters.ToList());
+			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceItemRelationshipSection section.
+	/// The <see cref="ServiceItemRelationshipSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceItemRelationshipSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemRelationshipSection"/> class. Creates an empty <see cref="ServiceItemRelationshipSection"/> object with default settings.
+		/// </summary>
+		public ServiceItemRelationshipSection() : base(SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemRelationshipSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemRelationshipSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceItemRelationshipSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceItemRelationship.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Type field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Type
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.Type, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ParentServiceItem field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ParentServiceItem
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItem, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ChildServiceItem field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ChildServiceItem
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItem, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ParentServiceItemInterfaceID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ParentServiceItemInterfaceID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ParentServiceItemInterfaceID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ChildServiceItemInterfaceID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ChildServiceItemInterfaceID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemRelationship.ChildServiceItemInterfaceID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceItemRelationshipSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemRelationshipSection"/> object that is a deep copy of this section.</returns>
+		public ServiceItemRelationshipSection Clone()
+		{
+			return new ServiceItemRelationshipSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceItemRelationshipSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemRelationshipSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceItemRelationshipSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceItemRelationshipSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceConfigurationParametersValuesSection section.
+	/// The <see cref="ServiceConfigurationParametersValuesSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceConfigurationParametersValuesSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationParametersValuesSection"/> class. Creates an empty <see cref="ServiceConfigurationParametersValuesSection"/> object with default settings.
+		/// </summary>
+		public ServiceConfigurationParametersValuesSection() : base(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceConfigurationParametersValuesSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceConfigurationParametersValuesSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceConfigurationParametersValuesSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Label field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Label
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Label, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceParameterID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ServiceParameterID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ServiceParameterID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ProfileParameterID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ProfileParameterID
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.ProfileParameterID, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Mandatory field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? Mandatory
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.Mandatory, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the StringValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String StringValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.StringValue, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the DoubleValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Double? DoubleValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<Double>(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue);
+				if (wrapper != null)
+				{
+					return (Double?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceConfigurationParametersValues.DoubleValue, (Double)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceConfigurationParametersValuesSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationParametersValuesSection"/> object that is a deep copy of this section.</returns>
+		public ServiceConfigurationParametersValuesSection Clone()
+		{
+			return new ServiceConfigurationParametersValuesSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceConfigurationParametersValuesSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceConfigurationParametersValuesSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceConfigurationParametersValuesSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceConfigurationParametersValuesSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceCategoryInfoSection section.
+	/// The <see cref="ServiceCategoryInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceCategoryInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceCategoryInfoSection"/> class. Creates an empty <see cref="ServiceCategoryInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceCategoryInfoSection() : base(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceCategoryInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceCategoryInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceCategoryInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceCategoryInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Name field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Name
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Name, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Type field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Type
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Type, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Icon field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Icon
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceCategoryInfo.Icon, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceCategoryInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceCategoryInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceCategoryInfoSection Clone()
+		{
+			return new ServiceCategoryInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceCategoryInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceCategoryInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceCategoryInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceCategoryInfoSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServicePropertyInfoSection section.
+	/// The <see cref="ServicePropertyInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServicePropertyInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyInfoSection"/> class. Creates an empty <see cref="ServicePropertyInfoSection"/> object with default settings.
+		/// </summary>
+		public ServicePropertyInfoSection() : base(SlcServicemanagementIds.Sections.ServicePropertyInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServicePropertyInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServicePropertyInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServicePropertyInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServicePropertyInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Name field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Name
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyInfo.Name, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Type field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcServicemanagementIds.Enums.TypeEnum? Type
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type);
+				if (wrapper != null)
+				{
+					return (SlcServicemanagementIds.Enums.TypeEnum?)SlcServicemanagementIds.Enums.Type.ToEnum(wrapper.Value);
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServicePropertyInfo.Type, SlcServicemanagementIds.Enums.Type.ToValue((SlcServicemanagementIds.Enums.TypeEnum)value));
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServicePropertyInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServicePropertyInfoSection Clone()
+		{
+			return new ServicePropertyInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServicePropertyInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServicePropertyInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServicePropertyInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServicePropertyInfoSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemsSection section.
+	/// The <see cref="ServiceOrderItemsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemsSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemsSection"/> class. Creates an empty <see cref="ServiceOrderItemsSection"/> object with default settings.
+		/// </summary>
+		public ServiceOrderItemsSection() : base(SlcServicemanagementIds.Sections.ServiceOrderItems.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemsSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemsSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceOrderItems.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItem field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceOrderItem
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItems.ServiceOrderItem, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the PriorityOrder field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Int64? PriorityOrder
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int64>(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder);
+				if (wrapper != null)
+				{
+					return (Int64?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItems.PriorityOrder, (Int64)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemsSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemsSection"/> object that is a deep copy of this section.</returns>
+		public ServiceOrderItemsSection Clone()
+		{
+			return new ServiceOrderItemsSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemsSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemsSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceOrderItemsSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceOrderItemsSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceItemConfigurationValueSection section.
+	/// The <see cref="ServiceItemConfigurationValueSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceItemConfigurationValueSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemConfigurationValueSection"/> class. Creates an empty <see cref="ServiceItemConfigurationValueSection"/> object with default settings.
+		/// </summary>
+		public ServiceItemConfigurationValueSection() : base(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemConfigurationValueSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemConfigurationValueSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceItemConfigurationValueSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the ConfigurationParameterValue field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ConfigurationParameterValue
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.ConfigurationParameterValue, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the WorkflowParamterReference field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String WorkflowParamterReference
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItemConfigurationValue.WorkflowParamterReference, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceItemConfigurationValueSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemConfigurationValueSection"/> object that is a deep copy of this section.</returns>
+		public ServiceItemConfigurationValueSection Clone()
+		{
+			return new ServiceItemConfigurationValueSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceItemConfigurationValueSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemConfigurationValueSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceItemConfigurationValueSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceItemConfigurationValueSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemServiceInfoSection section.
+	/// The <see cref="ServiceOrderItemServiceInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemServiceInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemServiceInfoSection"/> class. Creates an empty <see cref="ServiceOrderItemServiceInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceOrderItemServiceInfoSection() : base(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id)
+		{
+			ServiceOrderItemConfigurations = new List<Guid>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemServiceInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemServiceInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemServiceInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Id)
+		{
+			var serviceOrderItemConfigurations = section.GetListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations);
+			ServiceOrderItemConfigurations = serviceOrderItemConfigurations != null ? serviceOrderItemConfigurations.Values : new List<Guid>();
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceCategory field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceCategory
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceCategory, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceSpecification field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? ServiceSpecification
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceSpecification, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Service field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? Service
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Service, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Properties field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Guid? Properties
+		{
+			get
+			{
+				var wrapper = section.GetValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties);
+				if (wrapper != null)
+				{
+					return (Guid?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.Properties, (Guid)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceOrderItemConfigurations field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public IList<Guid> ServiceOrderItemConfigurations { get; private set; }
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemServiceInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemServiceInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceOrderItemServiceInfoSection Clone()
+		{
+			return new ServiceOrderItemServiceInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemServiceInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemServiceInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceOrderItemServiceInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceOrderItemServiceInfoSection(section);
+		}
+
+		/// <inheritdoc />
+		protected override Section InternalToSection()
+		{
+			if (ServiceOrderItemConfigurations.Count == 0)
+				section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations);
+			else
+				section.AddOrUpdateListValue<Guid>(SlcServicemanagementIds.Sections.ServiceOrderItemServiceInfo.ServiceOrderItemConfigurations, ServiceOrderItemConfigurations.ToList());
+			return section;
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceItemsSection section.
+	/// The <see cref="ServiceItemsSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceItemsSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemsSection"/> class. Creates an empty <see cref="ServiceItemsSection"/> object with default settings.
+		/// </summary>
+		public ServiceItemsSection() : base(SlcServicemanagementIds.Sections.ServiceItems.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceItemsSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceItemsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceItemsSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceItems.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Label field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Label
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.Label);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.Label);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.Label, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceItemID field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Int64? ServiceItemID
+		{
+			get
+			{
+				var wrapper = section.GetValue<Int64>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID);
+				if (wrapper != null)
+				{
+					return (Int64?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemID, (Int64)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceItemType field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public SlcServicemanagementIds.Enums.ServiceitemtypesEnum? ServiceItemType
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType);
+				if (wrapper != null)
+				{
+					return (SlcServicemanagementIds.Enums.ServiceitemtypesEnum?)SlcServicemanagementIds.Enums.Serviceitemtypes.ToEnum(wrapper.Value);
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemType, SlcServicemanagementIds.Enums.Serviceitemtypes.ToValue((SlcServicemanagementIds.Enums.ServiceitemtypesEnum)value));
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the DefinitionReference field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String DefinitionReference
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.DefinitionReference, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceItemScript field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ServiceItemScript
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ServiceItemScript, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ImplementationReference field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String ImplementationReference
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceItems.ImplementationReference, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceItemsSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemsSection"/> object that is a deep copy of this section.</returns>
+		public ServiceItemsSection Clone()
+		{
+			return new ServiceItemsSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceItemsSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceItemsSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceItemsSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceItemsSection(section);
+		}
+	}
+
+	/// <summary>
+	/// Represents a wrapper class for accessing a ServiceOrderItemInfoSection section.
+	/// The <see cref="ServiceOrderItemInfoSection"/> class provides simplified access to the data and functionality of the underlying DOM section, allowing for easier manipulation and retrieval of data from DOM.
+	/// </summary>
+	public partial class ServiceOrderItemInfoSection : DomSectionBase
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemInfoSection"/> class. Creates an empty <see cref="ServiceOrderItemInfoSection"/> object with default settings.
+		/// </summary>
+		public ServiceOrderItemInfoSection() : base(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="ServiceOrderItemInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
+		/// </summary>
+		/// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ServiceOrderItemInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
+		public ServiceOrderItemInfoSection(Section section) : base(section, SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Id)
+		{
+		}
+
+		/// <summary>
+		/// Gets or sets the Name field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Name
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Name, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Action field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public String Action
+		{
+			get
+			{
+				var wrapper = section.GetValue<String>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action);
+				if (wrapper != null)
+				{
+					return (String)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.Action, (String)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceStartTime field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public DateTime? ServiceStartTime
+		{
+			get
+			{
+				var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime);
+				if (wrapper != null)
+				{
+					return (DateTime?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceStartTime, (DateTime)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceEndTime field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public DateTime? ServiceEndTime
+		{
+			get
+			{
+				var wrapper = section.GetValue<DateTime>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime);
+				if (wrapper != null)
+				{
+					return (DateTime?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceEndTime, (DateTime)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the ServiceIndefiniteRuntime field of the DOM Instance.
+		/// </summary>
+		/// <remarks>
+		/// When retrieving the value:
+		/// <list type="bullet">
+		/// <item>If the field has been set, it will return the value.</item>
+		/// <item>If the field is not set it will return <see langword="null"/>.</item>
+		/// </list>
+		/// When setting the value:
+		/// <list type="bullet">
+		/// <item>- If <see langword="null"/> is assigned, the field will be removed from the section.</item>
+		/// <item>- If a valid value is assigned, the field value will be added or updated in the section.</item>
+		/// </list>
+		/// </remarks>
+		public Boolean? ServiceIndefiniteRuntime
+		{
+			get
+			{
+				var wrapper = section.GetValue<Boolean>(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime);
+				if (wrapper != null)
+				{
+					return (Boolean?)wrapper.Value;
+				}
+				else
+				{
+					return null;
+				}
+			}
+
+			set
+			{
+				if (value == null)
+				{
+					section.RemoveFieldValueById(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime);
+				}
+				else
+				{
+					section.AddOrUpdateValue(SlcServicemanagementIds.Sections.ServiceOrderItemInfo.ServiceIndefiniteRuntime, (Boolean)value);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Creates a deep copy of the current <see cref="ServiceOrderItemInfoSection"/>.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemInfoSection"/> object that is a deep copy of this section.</returns>
+		public ServiceOrderItemInfoSection Clone()
+		{
+			return new ServiceOrderItemInfoSection((Section)this.ToSection().Clone());
+		}
+
+		/// <summary>
+		/// Creates a duplicate of the current <see cref="ServiceOrderItemInfoSection"/> with a new id.
+		/// </summary>
+		/// <returns>A new <see cref="ServiceOrderItemInfoSection"/> object that is a copy of this section but with a different id.</returns>
+		public ServiceOrderItemInfoSection Duplicate()
+		{
+			var section = (Section)this.ToSection().Clone();
+			section.ID = new SectionID(Guid.NewGuid());
+			return new ServiceOrderItemInfoSection(section);
+		}
+	}
 }

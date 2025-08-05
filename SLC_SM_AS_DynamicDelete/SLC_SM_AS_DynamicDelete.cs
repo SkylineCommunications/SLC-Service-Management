@@ -155,7 +155,7 @@ namespace SLCSMASDynamicDelete
 			var connections = _connections.ToList(); // cannot iterate mutable collection
 			foreach (var connectionId in scriptData.ConnectionIds)
 			{
-				var connection = connections.FirstOrDefault(c => c.ID.Id == connectionId);
+				var connection = connections.FirstOrDefault(c => c.SectionID.Id == connectionId);
 				_connections.Remove(connection);
 			}
 		}
