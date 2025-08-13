@@ -6,7 +6,7 @@
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ConfigurationsApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations;
 
 	using SLC_SM_IAS_Configurations.Views;
 

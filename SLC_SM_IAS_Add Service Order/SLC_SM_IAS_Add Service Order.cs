@@ -59,7 +59,7 @@ namespace SLC_SM_IAS_Add_Service_Order_1
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Add_Service_Order_1.Presenters;
 	using SLC_SM_IAS_Add_Service_Order_1.Views;

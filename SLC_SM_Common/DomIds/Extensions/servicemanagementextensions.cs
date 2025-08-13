@@ -2,7 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Runtime.CompilerServices;
+
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 
 	public interface IServiceInstanceBase
@@ -50,7 +50,7 @@
 			if (instance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.Services.Id)
 				return new ServicesInstance(instance);
 
-			throw new InvalidOperationException($"Unsuported Dom Definition: {instance.DomDefinitionId.Id}");
+			throw new InvalidOperationException($"Unsupported Dom Definition: {instance.DomDefinitionId.Id}");
 		}
 	}
 }

@@ -9,19 +9,19 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Add_Service_Order_Item_1.Views;
 
 	public class ServiceOrderItemPresenter
 	{
 		private readonly string[] getServiceOrderItemLabels;
-		private readonly Repo repo;
+		private readonly DataHelpersServiceManagement repo;
 		private readonly ServiceOrderItemView view;
 		private Models.ServiceOrderItems instanceToReturn;
 		private bool isEdit;
 
-		public ServiceOrderItemPresenter(ServiceOrderItemView view, Repo repo, string[] getServiceOrderItemLabels)
+		public ServiceOrderItemPresenter(ServiceOrderItemView view, DataHelpersServiceManagement repo, string[] getServiceOrderItemLabels)
 		{
 			this.view = view;
 			this.repo = repo;

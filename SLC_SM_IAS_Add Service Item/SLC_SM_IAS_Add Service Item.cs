@@ -63,6 +63,7 @@ namespace SLC_SM_IAS_Add_Service_Item_1
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.Relationship;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	using SLC_SM_IAS_Add_Service_Item_1.Presenters;
@@ -149,6 +150,8 @@ namespace SLC_SM_IAS_Add_Service_Item_1
 					newSection.ServiceItemID = ids.Any() ? ids.Max() + 1 : 0;
 				}
 
+				AddServiceLink(instance.ID.Id, instance.ServiceInfo.ServiceName, newSection);
+
 				instance.ServiceItems.Add(newSection);
 				instance.Save(helper);
 			}
@@ -176,6 +179,31 @@ namespace SLC_SM_IAS_Add_Service_Item_1
 			{
 				throw new InvalidOperationException($"DOM definition '{domInstance.DomDefinitionId}' not supported (yet).");
 			}
+		}
+
+		private static void AddServiceLink(Guid serviceInstanceId, string serviceInstanceName, ServiceItemsSection newSection)
+		{
+			if (newSection.ServiceItemType != SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Service)
+			{
+				return;
+			}
+
+			var dataHelper = new DataHelperLink(Engine.SLNetRaw);
+			var link = dataHelper.Read().Find(x => x.ParentID == serviceInstanceId.ToString() && x.ChildID == newSection.ImplementationReference);
+			if (link != null)
+			{
+				// Already linked OK
+				return;
+			}
+
+			dataHelper.CreateOrUpdate(
+				new Models.Link
+				{
+					ParentID = serviceInstanceId.ToString(),
+					ParentName = serviceInstanceName,
+					ChildID = newSection.ImplementationReference,
+					ChildName = newSection.DefinitionReference,
+				});
 		}
 
 		private static string[] GetServiceItemLabels(DomInstance domInstance, string oldLbl)
@@ -238,9 +266,12 @@ namespace SLC_SM_IAS_Add_Service_Item_1
 			{
 				if (presenter.Validate())
 				{
-					string jobId = presenter.UpdateJobForWorkFlow(label);
 					var section = presenter.Section;
-					section.ImplementationReference = jobId;
+					string jobId = presenter.UpdateJobForWorkFlow(label);
+					if (!String.IsNullOrEmpty(jobId))
+					{
+						section.ImplementationReference = jobId;
+					}
 
 					AddOrUpdateServiceItemToInstance(domHelper, domInstance, section, label);
 					throw new ScriptAbortException("OK");

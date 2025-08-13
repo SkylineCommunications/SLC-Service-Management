@@ -140,9 +140,15 @@
 			{
 				return new WorkflowsInstanceAdapter(serviceItem, GetWorkflowbyName(serviceItem.DefinitionReference), existingRelationships);
 			}
-			else if (serviceItem.ServiceItemType.Value == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking)
+
+			if (serviceItem.ServiceItemType.Value == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking)
 			{
 				return new SRMBooking(serviceItem, existingRelationships);
+			}
+
+			if (serviceItem.ServiceItemType.Value == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Service)
+			{
+				return new ServiceLink(instance);
 			}
 
 			throw new ArgumentException($"Unknown definition reference: {serviceItem.DefinitionReference}");

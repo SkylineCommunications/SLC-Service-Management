@@ -109,7 +109,6 @@ namespace Get_ServiceItemsMultipleSections_1
 			if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.Services.Id)
 			{
 				var instance = new ServicesInstance(domInstance);
-
 				serviceItems = instance.ServiceItems;
 			}
 			else if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.ServiceSpecifications.Id)
@@ -141,7 +140,7 @@ namespace Get_ServiceItemsMultipleSections_1
 					new GQICell { Value = item.ServiceItemScript ?? String.Empty },
 					new GQICell { Value = item.ImplementationReference ?? String.Empty },
 					new GQICell { Value = GetImplementationRefName(item.ImplementationReference) },
-					new GQICell { Value = item.ID.Id.ToString() },
+					new GQICell { Value = item.SectionID.Id.ToString() },
 				});
 		}
 

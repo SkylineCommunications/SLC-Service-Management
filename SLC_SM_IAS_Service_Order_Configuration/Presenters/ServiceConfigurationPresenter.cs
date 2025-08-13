@@ -12,7 +12,7 @@
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Service_Order_Configuration.Views;
 
@@ -23,8 +23,8 @@
 		private readonly InteractiveController controller;
 		private readonly Models.ServiceOrderItem instance;
 		private readonly ServiceConfigurationView view;
-		private RepoConfigurations repoConfig;
-		private Repo repoService;
+		private DataHelpersConfigurations repoConfig;
+		private DataHelpersServiceManagement repoService;
 
 		public ServiceConfigurationPresenter(IEngine engine, InteractiveController controller, ServiceConfigurationView view, Models.ServiceOrderItem instance)
 		{
@@ -59,8 +59,8 @@
 
 		public void LoadFromModel()
 		{
-			repoService = new Repo(Engine.SLNetRaw);
-			repoConfig = new RepoConfigurations(Engine.SLNetRaw);
+			repoService = new DataHelpersServiceManagement(Engine.SLNetRaw);
+			repoConfig = new DataHelpersConfigurations(Engine.SLNetRaw);
 
 			var configParams = repoConfig.ConfigurationParameters.Read();
 
@@ -95,14 +95,14 @@
 			repoService.ServiceOrderItems.CreateOrUpdate(instance);
 		}
 
-		private void AddConfigModel(SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter selectedParameter)
+		private void AddConfigModel(Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter selectedParameter)
 		{
-			var configurationParameterInstance = selectedParameter ?? new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter();
+			var configurationParameterInstance = selectedParameter ?? new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter();
 			var config = new Models.ServiceOrderItemConfigurationValue
 			{
 				ID = Guid.NewGuid(),
 				Mandatory = true,
-				ConfigurationParameter = new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue
+				ConfigurationParameter = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue
 				{
 					Label = String.Empty,
 					Type = configurationParameterInstance.Type,
@@ -132,7 +132,7 @@
 			configurations.Add(BuildDataRecord(config, configurationParameterInstance));
 		}
 
-		private DataRecord BuildDataRecord(Models.ServiceOrderItemConfigurationValue currentConfig, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter configParam)
+		private DataRecord BuildDataRecord(Models.ServiceOrderItemConfigurationValue currentConfig, Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter configParam)
 		{
 			var dataRecord = new DataRecord
 			{
@@ -177,6 +177,8 @@
 		private void BuildUI(bool showDetails, bool showLifeCycleDetails)
 		{
 			view.Clear();
+			view.Details.Clear();
+			view.LifeCycleDetails.Clear();
 
 			int row = 0;
 			view.AddWidget(view.TitleDetails, row, 0, 1, 2);
@@ -200,9 +202,9 @@
 			view.LifeCycleDetails.IsVisible = showLifeCycleDetails;
 
 			view.AddWidget(new WhiteSpace(), ++row, 0);
-			var parameterOptions = repoConfig.ConfigurationParameters.Read().Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(x.Name, x)).OrderBy(x => x.DisplayValue).ToList();
-			parameterOptions.Insert(0, new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>("- Add -", null));
-			var parameter = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(parameterOptions);
+			var parameterOptions = repoConfig.ConfigurationParameters.Read().Select(x => new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter>(x.Name, x)).OrderBy(x => x.DisplayValue).ToList();
+			parameterOptions.Insert(0, new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter>("- Add -", null));
+			var parameter = new DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter>(parameterOptions);
 			view.AddWidget(parameter, ++row, 1);
 			parameter.Changed += (sender, args) =>
 			{
@@ -224,14 +226,14 @@
 		{
 			// Init
 			var label = new TextBox(record.ConfigurationParamValue.Label);
-			var parameter = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(
-				new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter>(record.ConfigurationParam.Name, record.ConfigurationParam) })
+			var parameter = new DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter>(
+				new[] { new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter>(record.ConfigurationParam.Name, record.ConfigurationParam) })
 			{
 				IsEnabled = false,
 			};
 			var isFixed = new CheckBox { IsChecked = record.ConfigurationParamValue.ValueFixed, IsEnabled = false };
 			var link = new CheckBox { IsChecked = record.ConfigurationParamValue.LinkedConfigurationReference != null };
-			var unit = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(new[] { new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>("-", null) }) { IsEnabled = false, MaxWidth = 80 };
+			var unit = new DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>(new[] { new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>("-", null) }) { IsEnabled = false, MaxWidth = 80 };
 			var start = new Numeric { IsEnabled = false, MaxWidth = 100 };
 			var end = new Numeric { IsEnabled = false, MaxWidth = 100 };
 			var step = new Numeric { IsEnabled = false, Minimum = 0, Maximum = 1, MaxWidth = 100 };
@@ -326,11 +328,11 @@
 					case SlcConfigurationsIds.Enums.Type.Discrete:
 						{
 							var discretes = record.ConfigurationParamValue.DiscreteOptions.DiscreteValues
-								.Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(x.Value, x))
+								.Select(x => new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue>(x.Value, x))
 								.OrderBy(x => x.DisplayValue)
 								.ToList();
 
-							var value = new DropDown<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>(discretes) { IsEnabled = !isFixed.IsChecked };
+							var value = new DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue>(discretes) { IsEnabled = !isFixed.IsChecked };
 							if (record.ConfigurationParamValue.StringValue != null
 								&& value.Options.Any(x => x.DisplayValue == record.ConfigurationParamValue.StringValue))
 							{
@@ -338,6 +340,10 @@
 							}
 
 							values.IsEnabled = true;
+							if (record.ConfigurationParamValue.StringValue == null)
+							{
+								record.ConfigurationParamValue.StringValue = value.Selected?.Value;
+							}
 
 							value.Changed += (sender, args) => { record.ConfigurationParamValue.StringValue = args.SelectedOption.DisplayValue; };
 							values.Pressed += (sender, args) =>
@@ -348,6 +354,7 @@
 								optionsView.BtnApply.Pressed += (o, eventArgs) =>
 								{
 									value.SetOptions(optionsView.Options.CheckedOptions);
+									record.ConfigurationParamValue.StringValue = value.Selected?.Value;
 									controller.ShowDialog(view);
 								};
 								controller.ShowDialog(optionsView);
@@ -402,25 +409,25 @@
 			view.AddWidget(delete, row, 12);
 		}
 
-		private List<Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>> GetUnits(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)
+		private List<Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>> GetUnits(Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.NumberParameterOptions numberValueOptions, Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter parameter)
 		{
-			var units = new List<Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>>();
+			var units = new List<Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>>();
 			if (numberValueOptions?.DefaultUnit != null)
 			{
-				units.AddRange(numberValueOptions.Units.Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(x.Name, x)));
+				units.AddRange(numberValueOptions.Units.Select(x => new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>(x.Name, x)));
 			}
 			else if (parameter.NumberOptions?.DefaultUnit != null)
 			{
-				units.AddRange(parameter.NumberOptions.Units.Select(x => new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>(x.Name, x)));
+				units.AddRange(parameter.NumberOptions.Units.Select(x => new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>(x.Name, x)));
 			}
 
 			units = units.OrderBy(x => x.DisplayValue).ToList();
 
-			units.Insert(0, new Option<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>("-", null));
+			units.Insert(0, new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>("-", null));
 			return units;
 		}
 
-		private SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit GetDefaultUnit(SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions numberValueOptions, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter)
+		private Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit GetDefaultUnit(Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.NumberParameterOptions numberValueOptions, Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter parameter)
 		{
 			if (numberValueOptions != null)
 			{
@@ -441,9 +448,9 @@
 
 			public Models.ServiceOrderItemConfigurationValue ServiceConfig { get; set; }
 
-			public SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue ConfigurationParamValue { get; set; }
+			public Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue ConfigurationParamValue { get; set; }
 
-			public SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter ConfigurationParam { get; set; }
+			public Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter ConfigurationParam { get; set; }
 		}
 	}
 }

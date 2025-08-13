@@ -62,7 +62,7 @@ namespace SLC_SM_IAS_Service_Order_Configuration
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Service_Order_Configuration.Presenters;
 	using SLC_SM_IAS_Service_Order_Configuration.Views;

@@ -62,7 +62,7 @@ namespace SLC_SM_IAS_Add_Service_Order_Item_1
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Add_Service_Order_Item_1.Presenters;
 	using SLC_SM_IAS_Add_Service_Order_Item_1.Views;
@@ -129,7 +129,7 @@ namespace SLC_SM_IAS_Add_Service_Order_Item_1
 			}
 		}
 
-		private static void AddOrUpdateServiceItemToInstance(Repo helper, Models.ServiceOrder instance, Models.ServiceOrderItems updatedData)
+		private static void AddOrUpdateServiceItemToInstance(DataHelpersServiceManagement helper, Models.ServiceOrder instance, Models.ServiceOrderItems updatedData)
 		{
 			helper.ServiceOrderItems.CreateOrUpdate(updatedData.ServiceOrderItem);
 
@@ -167,7 +167,7 @@ namespace SLC_SM_IAS_Add_Service_Order_Item_1
 				throw new InvalidOperationException("No Action provided as input to the script");
 			}
 
-			var repo = new Repo(Engine.SLNetRaw);
+			var repo = new DataHelpersServiceManagement(Engine.SLNetRaw);
 			var order = repo.ServiceOrders.Read().Find(x => x.ID == domId)
 				?? throw new InvalidOperationException($"No DOM Instance with ID '{domId}' found on the system.");
 

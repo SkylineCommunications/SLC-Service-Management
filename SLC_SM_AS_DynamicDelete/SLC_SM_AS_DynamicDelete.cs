@@ -54,12 +54,14 @@ namespace SLCSMASDynamicDelete
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers;
 	using DomHelpers.SlcServicemanagement;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+
 	using SLC_SM_AS_DynamicDelete;
 
 	/// <summary>
@@ -155,7 +157,7 @@ namespace SLCSMASDynamicDelete
 			var connections = _connections.ToList(); // cannot iterate mutable collection
 			foreach (var connectionId in scriptData.ConnectionIds)
 			{
-				var connection = connections.FirstOrDefault(c => c.ID.Id == connectionId);
+				var connection = connections.FirstOrDefault(c => c.SectionID.Id == connectionId);
 				_connections.Remove(connection);
 			}
 		}

@@ -59,8 +59,7 @@ namespace SLCSMDSTopologySelectedItems
 	/// See: https://aka.dataminer.services/gqi-external-data-source for a complete example.
 	/// </summary>
 	[GQIMetaData(Name = "SLC_SM_DS_TopologySelectedItems")]
-	public sealed class SLCSMDSTopologySelectedItems : IGQIDataSource
-		, IGQIInputArguments
+	public sealed class SLCSMDSTopologySelectedItems : IGQIDataSource, IGQIInputArguments
 	{
 		private readonly GQIStringArgument nodeIdsArg = new GQIStringArgument("NodeIds") { IsRequired = false };
 		private string _nodeIds;

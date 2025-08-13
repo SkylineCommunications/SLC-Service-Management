@@ -26,6 +26,9 @@
 			AddWidget(LblDefinitionReference, ++row, 0);
 			AddWidget(DefinitionReferences, row, 1, 1, 2);
 
+			AddWidget(LblImplementationReference, ++row, 0);
+			AddWidget(ImplementationReferences, row, 1, 1, 2);
+
 			AddWidget(LblScriptSelection, ++row, 0);
 			AddWidget(ScriptSelection, row, 1, 1, 2);
 
@@ -49,6 +52,10 @@
 		public Label LblDefinitionReference { get; } = new Label("Definition Reference");
 
 		public DropDown DefinitionReferences { get; } = new DropDown { Width = Defaults.WidgetWidth };
+
+		public Label LblImplementationReference { get; } = new Label("Service Reference");
+
+		public DropDown ImplementationReferences { get; } = new DropDown { Width = Defaults.WidgetWidth };
 
 		public Label LblScriptSelection { get; } = new Label("Service Item Script");
 

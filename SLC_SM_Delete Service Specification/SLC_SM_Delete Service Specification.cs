@@ -107,7 +107,7 @@ namespace SLC_SM_Delete_Service_Specification
 				throw new InvalidOperationException("No DOM ID provided as input to the script");
 			}
 
-			var repo = new Repo(Engine.SLNetRaw);
+			var repo = new DataHelpersServiceManagement(Engine.SLNetRaw);
 			var orderItemInstance = repo.ServiceSpecifications.Read().Find(x => x.ID == domId);
 
 			repo.ServiceSpecifications.TryDelete(orderItemInstance);

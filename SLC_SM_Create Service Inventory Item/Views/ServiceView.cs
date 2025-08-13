@@ -5,9 +5,8 @@
 	using Library;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-
-	using SLC_SM_Common.API.ServiceManagementApi;
 
 	public class ServiceView : Dialog
 	{
@@ -65,7 +64,7 @@
 
 		public Label LblOrganization { get; } = new Label("Organization");
 
-		public DropDown<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> Organizations { get; } = new DropDown<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> { Width = Defaults.WidgetWidth };
+		public DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization> Organizations { get; } = new DropDown<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization> { Width = Defaults.WidgetWidth };
 
 		public Label LblStart { get; } = new Label("Start Time");
 

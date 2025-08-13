@@ -11,9 +11,8 @@
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-
-	using SLC_SM_Common.API.ServiceManagementApi;
 
 	using SLC_SM_IAS_Add_Service_Order_1.Views;
 

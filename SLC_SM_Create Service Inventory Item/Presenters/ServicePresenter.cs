@@ -7,23 +7,22 @@
 	using Library;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-
-	using SLC_SM_Common.API.PeopleAndOrganizationApi;
 
 	using SLC_SM_Create_Service_Inventory_Item.Views;
 
-	using Models = SLC_SM_Common.API.ServiceManagementApi.Models;
+	using Models = Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement.Models;
 
 	public class ServicePresenter
 	{
 		private readonly List<string> getServiceLabels;
-		private readonly Repo repo;
+		private readonly DataHelpersServiceManagement repo;
 		private readonly ServiceView view;
 		private Models.Service instanceToReturn;
 		private bool isEdit = false;
 
-		public ServicePresenter(Repo repo, ServiceView view, List<string> getServiceLabels)
+		public ServicePresenter(DataHelpersServiceManagement repo, ServiceView view, List<string> getServiceLabels)
 		{
 			this.repo = repo;
 			this.view = view;
@@ -79,9 +78,9 @@
 
 			var orgs = new DataHelperOrganization(Engine.SLNetRaw).Read()
 				.OrderBy(x => x.Name)
-				.Select(x => new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>(x.Name, x))
+				.Select(x => new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization>(x.Name, x))
 				.ToList();
-			orgs.Insert(0, new Option<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization>("-None-", null));
+			orgs.Insert(0, new Option<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization>("-None-", null));
 			view.Organizations.SetOptions(orgs);
 
 			view.Start.DateTime = DateTime.Now + TimeSpan.FromHours(1);

@@ -61,9 +61,8 @@ namespace SLC_SM_Create_Service_Inventory_Item
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-
-	using SLC_SM_Common.API.ServiceManagementApi;
 
 	using SLC_SM_Create_Service_Inventory_Item.Presenters;
 	using SLC_SM_Create_Service_Inventory_Item.Views;
@@ -134,7 +133,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			}
 		}
 
-		private void AddOrUpdateService(Repo repo, Models.Service instance)
+		private void AddOrUpdateService(DataHelpersServiceManagement repo, Models.Service instance)
 		{
 			if (!instance.ServiceSpecificationId.HasValue || instance.ServiceSpecificationId == Guid.Empty)
 			{
@@ -212,7 +211,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			repo.Services.CreateOrUpdate(instance);
 		}
 
-		private void CreateNewServiceAndLinkItToServiceOrder(Repo repo, Models.ServiceOrderItem serviceOrder)
+		private void CreateNewServiceAndLinkItToServiceOrder(DataHelpersServiceManagement repo, Models.ServiceOrderItem serviceOrder)
 		{
 			List<Models.Service> services = repo.Services.Read();
 			if (serviceOrder.ServiceId.HasValue && services.Exists(s => s.ID == serviceOrder.ServiceId))
@@ -340,7 +339,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			}
 		}
 
-		private Models.Service GetService(Repo repo, Guid domId)
+		private Models.Service GetService(DataHelpersServiceManagement repo, Guid domId)
 		{
 			if (domId == Guid.Empty)
 			{
@@ -367,7 +366,7 @@ namespace SLC_SM_Create_Service_Inventory_Item
 			string domIdRaw = _engine.GetScriptParam("DOM ID").Value.Trim('"', '[', ']');
 			Guid.TryParse(domIdRaw, out Guid domId);
 
-			var repo = new Repo(Engine.SLNetRaw);
+			var repo = new DataHelpersServiceManagement(Engine.SLNetRaw);
 
 			// Init views
 			var view = new ServiceView(_engine);

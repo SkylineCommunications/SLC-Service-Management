@@ -52,7 +52,6 @@ DATE		VERSION		AUTHOR			COMMENTS
 namespace GetServiceItemRelationshipMultisection
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
 
 	using DomHelpers.SlcServicemanagement;
@@ -60,7 +59,7 @@ namespace GetServiceItemRelationshipMultisection
 
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-	using Skyline.DataMiner.Net.CPE.Messages;
+	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
 	/// <summary>
@@ -68,9 +67,7 @@ namespace GetServiceItemRelationshipMultisection
 	/// See: https://aka.dataminer.services/gqi-external-data-source for a complete example.
 	/// </summary>
 	[GQIMetaData(Name = "Get Service Item Relationship Multisection")]
-	public sealed class GetServiceItemRelationshipMultisection : IGQIDataSource
-		, IGQIOnInit
-		, IGQIInputArguments
+	public sealed class GetServiceItemRelationshipMultisection : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 	{
 		private readonly GQIStringArgument domIdArg = new GQIStringArgument("DOM ID") { IsRequired = false };
 		private Guid _specificationId;
@@ -81,7 +78,7 @@ namespace GetServiceItemRelationshipMultisection
 		private DomHelper _wfDomHelper;
 		private GQIDMS dms;
 
-		private IEnumerable<WorkflowsInstance> _workflows;
+		private WorkflowsInstance[] _workflows;
 
 		public OnInitOutputArgs OnInit(OnInitInputArgs args)
 		{
@@ -131,7 +128,7 @@ namespace GetServiceItemRelationshipMultisection
 			Init();
 
 			var relationships = _serviceInstance.GetServiceItemRelationships();
-			var items = _serviceInstance.GetServiceItems().Select(i => i.ServiceItemID.ToString());
+			var items = _serviceInstance.GetServiceItems().Select(i => i.ServiceItemID.ToString()).ToArray();
 
 			return new GQIPage(relationships
 				.Where(r => !r.IsEmpty
@@ -148,7 +145,8 @@ namespace GetServiceItemRelationshipMultisection
 
 			_workflows = _wfDomHelper.DomInstances
 				.Read(DomInstanceExposers.DomDefinitionId.Equal(SlcWorkflowIds.Definitions.Workflows.Id))
-				.Select(w => new WorkflowsInstance(w));
+				.Select(w => new WorkflowsInstance(w))
+				.ToArray();
 
 			var domInstance = _smDomHelper.DomInstances
 				.Read(DomInstanceExposers.Id.Equal(_specificationId))
@@ -167,7 +165,7 @@ namespace GetServiceItemRelationshipMultisection
 		{
 			return new GQIRow(new[]
 			{
-				new GQICell { Value = r.ID.Id.ToString() },
+				new GQICell { Value = r.SectionID.Id.ToString() },
 				new GQICell { Value = r.Type },
 				new GQICell { Value = r.ChildServiceItem },
 				new GQICell { Value = r.ParentServiceItem },
@@ -193,6 +191,9 @@ namespace GetServiceItemRelationshipMultisection
 
 			if (type == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking)
 				return interfaceId == "1" ? "Default SRM Output" : "Default SRM Input";
+
+			if (type == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Service)
+				return interfaceId == "1" ? "Default Service Link Output" : "Default Service Link Input";
 
 			throw new InvalidOperationException($"Unrecognized service item type {type}");
 		}

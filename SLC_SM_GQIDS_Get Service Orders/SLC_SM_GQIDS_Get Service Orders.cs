@@ -9,11 +9,10 @@ namespace SLC_SM_GQIDS_Get_Service_Orders
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Net;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
-	using SLC_SM_Common.API.PeopleAndOrganizationApi;
-	using SLC_SM_Common.API.ServiceManagementApi;
-
-	using Models = SLC_SM_Common.API.ServiceManagementApi.Models;
+	using Models = Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement.Models;
 
 	// Required to mark the interface as a GQI data source
 	[GQIMetaData(Name = "Get_ServiceOrders")]
@@ -92,7 +91,7 @@ namespace SLC_SM_GQIDS_Get_Service_Orders
 			return default;
 		}
 
-		private GQIRow BuildRow(Models.ServiceOrder item, List<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> organizations)
+		private GQIRow BuildRow(Models.ServiceOrder item, List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization> organizations)
 		{
 			return new GQIRow(
 				item.ID.ToString(),
@@ -111,7 +110,7 @@ namespace SLC_SM_GQIDS_Get_Service_Orders
 		private GQIRow[] GetMultiSection()
 		{
 			IConnection connection = _dms.GetConnection();
-			List<SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization> organizations = new DataHelperOrganization(connection).Read();
+			List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization> organizations = new DataHelperOrganization(connection).Read();
 
 			var instances = new DataHelperServiceOrder(connection).Read();
 			return instances.Select(item => BuildRow(item, organizations)).ToArray();

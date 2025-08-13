@@ -56,14 +56,16 @@ namespace SLCSMCreateJobForServiceItem
 
 	using DomHelpers.SlcServicemanagement;
 
+	using Library.Views;
+
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 	using Skyline.DataMiner.Utils.MediaOps.Common.IOData.Scheduling.Scripts.JobHandler;
-	using Skyline.DataMiner.Utils.MediaOps.Helpers.Scheduling;
 	using Skyline.DataMiner.Utils.MediaOps.Helpers.Workflows;
 
 	/// <summary>
@@ -77,6 +79,13 @@ namespace SLCSMCreateJobForServiceItem
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public void Run(IEngine engine)
 		{
+			/*
+            * Note:
+            * Do not remove the commented methods below!
+            * The lines are needed to execute an interactive automation script from the non-interactive automation script or from Visio!
+            *
+            * engine.ShowUI();
+            */
 			try
 			{
 				RunSafe(engine);
@@ -100,7 +109,8 @@ namespace SLCSMCreateJobForServiceItem
 			}
 			catch (Exception e)
 			{
-				engine.ExitFail("Something went wrong:\r\n" + e.Message);
+				var errorView = new ErrorView(engine, "Error", e.Message, e.ToString());
+				new InteractiveController(engine).ShowDialog(errorView);
 			}
 		}
 

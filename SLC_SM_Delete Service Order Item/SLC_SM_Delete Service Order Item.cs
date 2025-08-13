@@ -59,8 +59,7 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 	using Library;
 
 	using Skyline.DataMiner.Automation;
-
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -103,7 +102,7 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 			}
 		}
 
-		private static void DeleteServiceItemFromInstance(Repo repo, Models.ServiceOrder domInstance, Guid serviceOrderItemId)
+		private static void DeleteServiceItemFromInstance(DataHelpersServiceManagement repo, Models.ServiceOrder domInstance, Guid serviceOrderItemId)
 		{
 			var itemToRemove = domInstance.OrderItems.FirstOrDefault(x => x.ServiceOrderItem.ID == serviceOrderItemId);
 			if (itemToRemove == null)
@@ -129,7 +128,7 @@ namespace SLC_SM_Delete_Service_Order_Item_1
 				throw new InvalidOperationException("No Service Order Item ID provided as input to the script");
 			}
 
-			var repo = new Repo(Engine.SLNetRaw);
+			var repo = new DataHelpersServiceManagement(Engine.SLNetRaw);
 			var orderItemInstance = repo.ServiceOrders.Read().Find(x => x.ID == domId);
 
 			DeleteServiceItemFromInstance(repo, orderItemInstance, serviceOrderItemId);

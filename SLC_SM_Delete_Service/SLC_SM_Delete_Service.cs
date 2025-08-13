@@ -54,11 +54,14 @@ namespace SLC_SM_Delete_Service_1
 	using System.Collections.Generic;
 	using System.Linq;
 
+	using DomHelpers.SlcServicemanagement;
+
 	using Library;
 
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -101,15 +104,6 @@ namespace SLC_SM_Delete_Service_1
 			}
 		}
 
-		private static void DeleteLinkedItems(Repo repo, Guid itemId)
-		{
-			var service = repo.Services.Read().Find(x => x.ID == itemId);
-			if (service != null)
-			{
-				repo.Services.TryDelete(service);
-			}
-		}
-
 		private void RunSafe()
 		{
 			string domIdRaw = _engine.GetScriptParam("DOM ID").Value;
@@ -119,8 +113,14 @@ namespace SLC_SM_Delete_Service_1
 				throw new InvalidOperationException("No DOM ID provided as input to the script");
 			}
 
-			var repo = new Repo(Engine.SLNetRaw);
-			DeleteLinkedItems(repo, domId);
+			var repo = new DataHelpersServiceManagement(Engine.SLNetRaw);
+
+			var service = repo.Services.Read(ServiceExposers.Guid.Equal(domId)).FirstOrDefault();
+			if (service != null)
+			{
+				_engine.GenerateInformation($"Service that will be removed: {service.ID}/{service.Name}");
+				repo.Services.TryDelete(service);
+			}
 		}
 	}
 }

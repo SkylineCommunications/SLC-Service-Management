@@ -62,12 +62,11 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
-	using SLC_SM_Common.API.ConfigurationsApi;
-	using SLC_SM_Common.API.PeopleAndOrganizationApi;
-	using SLC_SM_Common.API.ServiceManagementApi;
-
-	using Models = SLC_SM_Common.API.ServiceManagementApi.Models;
+	using Models = Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement.Models;
 
 	/// <summary>
 	///     Represents a DataMiner Automation script.
@@ -528,98 +527,98 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			};
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParamFrequency(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParamFrequency(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Number,
-					NumberOptions = new SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions
+					NumberOptions = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.NumberParameterOptions
 					{
 						Decimals = 6,
 						MinRange = 0,
 						StepSize = 0.000001,
-						DefaultUnit = new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit { Name = "MHz" },
-						Units = new List<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>
+						DefaultUnit = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit { Name = "MHz" },
+						Units = new List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>
 						{
-							new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit { Name = "MHz" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit { Name = "MHz" },
 						},
 					},
 				});
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParamOrbitalPosition(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParamOrbitalPosition(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Discrete,
-					DiscreteOptions = new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteParameterOptions
+					DiscreteOptions = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteParameterOptions
 					{
-						Default = new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "19.2E" },
-						DiscreteValues = new List<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>
+						Default = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "19.2E" },
+						DiscreteValues = new List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue>
 						{
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "0.8W" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "3.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "4.8E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "5.0W" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "7.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "9.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "12.5W" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "13.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "15.0W" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "16.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "19.2E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "21.5E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "23.5E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "26.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "28.2E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "30.5E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "33.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "34.5W" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "36.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "39.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "42.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "48.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "55.0E" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "68.5E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "0.8W" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "3.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "4.8E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "5.0W" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "7.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "9.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "12.5W" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "13.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "15.0W" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "16.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "19.2E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "21.5E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "23.5E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "26.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "28.2E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "30.5E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "33.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "34.5W" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "36.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "39.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "42.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "48.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "55.0E" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "68.5E" },
 						},
 					},
 				});
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParamPolarization(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParamPolarization(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Discrete,
-					DiscreteOptions = new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteParameterOptions
+					DiscreteOptions = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteParameterOptions
 					{
-						Default = new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "Horizontal" },
-						DiscreteValues = new List<SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue>
+						Default = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "Horizontal" },
+						DiscreteValues = new List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue>
 						{
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "Horizontal" },
-							new SLC_SM_Common.API.ConfigurationsApi.Models.DiscreteValue { Value = "Vertical" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "Horizontal" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.DiscreteValue { Value = "Vertical" },
 						},
 					},
 				});
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParamServiceId(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParamServiceId(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Number,
-					NumberOptions = new SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions
+					NumberOptions = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.NumberParameterOptions
 					{
 						MinRange = 0,
 						MaxRange = 50000,
@@ -630,10 +629,10 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParameterString(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParameterString(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Text,
@@ -641,10 +640,10 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue CreateConfig(DataHelperConfigurationParameterValue helper, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter, string name, string value)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue CreateConfig(DataHelperConfigurationParameterValue helper, Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter parameter, string name, string value)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue
 				{
 					Label = name,
 					Type = parameter.Type,
@@ -657,10 +656,10 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue CreateConfig(DataHelperConfigurationParameterValue helper, SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter parameter, string name, double value)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue CreateConfig(DataHelperConfigurationParameterValue helper, Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter parameter, string name, double value)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameterValue
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameterValue
 				{
 					Label = name,
 					Type = parameter.Type,
@@ -673,22 +672,22 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			return helper.Read().First(x => x.ID == id);
 		}
 
-		private static SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter CreateParamSymbolRate(DataHelperConfigurationParameter helper, string name)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter CreateParamSymbolRate(DataHelperConfigurationParameter helper, string name)
 		{
 			var id = helper.CreateOrUpdate(
-				new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationParameter
+				new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationParameter
 				{
 					Name = name,
 					Type = SlcConfigurationsIds.Enums.Type.Number,
-					NumberOptions = new SLC_SM_Common.API.ConfigurationsApi.Models.NumberParameterOptions
+					NumberOptions = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.NumberParameterOptions
 					{
 						Decimals = 6,
 						MinRange = 0,
 						StepSize = 0.000001,
-						DefaultUnit = new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit { Name = "MBd" },
-						Units = new List<SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit>
+						DefaultUnit = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit { Name = "MBd" },
+						Units = new List<Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit>
 						{
-							new SLC_SM_Common.API.ConfigurationsApi.Models.ConfigurationUnit { Name = "MBd" },
+							new Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations.Models.ConfigurationUnit { Name = "MBd" },
 						},
 					},
 				});
@@ -706,17 +705,17 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 				});
 		}
 
-		private static SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization GetOrganization()
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization GetOrganization()
 		{
-			var dataHelperOrg = new SLC_SM_Common.API.PeopleAndOrganizationApi.DataHelperOrganization(Engine.SLNetRaw);
+			var dataHelperOrg = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.DataHelperOrganization(Engine.SLNetRaw);
 			var org = dataHelperOrg.Read().Find(x => x.Name == "Vodafone Kabel Deutschland");
 			if (org == null)
 			{
-				var dataHelperCat = new SLC_SM_Common.API.PeopleAndOrganizationApi.DataHelperCategory(Engine.SLNetRaw);
+				var dataHelperCat = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.DataHelperCategory(Engine.SLNetRaw);
 				var category = dataHelperCat.Read().Find(x => x.Name == "Content Provider");
 				if (category == null)
 				{
-					category = new SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Category
+					category = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Category
 					{
 						ID = Guid.NewGuid(),
 						Name = "Content Provider",
@@ -724,7 +723,7 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 					dataHelperCat.CreateOrUpdate(category);
 				}
 
-				org = new SLC_SM_Common.API.PeopleAndOrganizationApi.Models.Organization
+				org = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.Organization
 				{
 					ID = Guid.NewGuid(),
 					Name = "Vodafone Kabel Deutschland",
@@ -736,7 +735,7 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 			return org;
 		}
 
-		private static SLC_SM_Common.API.PeopleAndOrganizationApi.Models.People GetPeople(Guid org)
+		private static Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.People GetPeople(Guid org)
 		{
 			var dataHelperPeople = new DataHelperPeople(Engine.SLNetRaw);
 			var people = dataHelperPeople.Read().Find(x => x.OrganizationId == org);
@@ -746,7 +745,7 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 				var exp = dataHelperExperience.Read().Find(x => x.Value == "Master");
 				if (exp == null)
 				{
-					exp = new SLC_SM_Common.API.PeopleAndOrganizationApi.Models.ExperienceLevel
+					exp = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.ExperienceLevel
 					{
 						ID = Guid.NewGuid(),
 						Value = "Master",
@@ -754,7 +753,7 @@ namespace SLC_SM_AS_Ingest_Acquisition_Data
 					dataHelperExperience.CreateOrUpdate(exp);
 				}
 
-				people = new SLC_SM_Common.API.PeopleAndOrganizationApi.Models.People
+				people = new Skyline.DataMiner.ProjectApi.ServiceManagement.API.PeopleAndOrganization.Models.People
 				{
 					ID = Guid.NewGuid(),
 					OrganizationId = org,

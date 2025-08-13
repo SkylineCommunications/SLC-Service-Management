@@ -63,7 +63,7 @@ namespace SLC_SM_IAS_Add_Service_Specification
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ServiceManagementApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
 
 	using SLC_SM_IAS_Add_Service_Specification.Presenters;
 	using SLC_SM_IAS_Add_Service_Specification.Views;

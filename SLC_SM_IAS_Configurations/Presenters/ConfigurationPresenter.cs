@@ -12,7 +12,7 @@
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
-	using SLC_SM_Common.API.ConfigurationsApi;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.Configurations;
 
 	using SLC_SM_IAS_Configurations.Views;
 
@@ -23,7 +23,7 @@
 		private readonly IEngine engine;
 		private readonly ConfigurationView view;
 		private List<Option<Models.ConfigurationUnit>> cachedUnits;
-		private RepoConfigurations repoConfig;
+		private DataHelpersConfigurations repoConfig;
 
 		public ConfigurationPresenter(IEngine engine, InteractiveController controller, ConfigurationView view)
 		{
@@ -48,7 +48,7 @@
 
 		public void LoadFromModel()
 		{
-			repoConfig = new RepoConfigurations(Engine.SLNetRaw);
+			repoConfig = new DataHelpersConfigurations(Engine.SLNetRaw);
 			cachedUnits = repoConfig.ConfigurationUnits.Read().Select(x => new Option<Models.ConfigurationUnit>(x.Name, x)).OrderBy(x => x.DisplayValue).ToList();
 			cachedUnits.Insert(0, new Option<Models.ConfigurationUnit>("-", null));
 

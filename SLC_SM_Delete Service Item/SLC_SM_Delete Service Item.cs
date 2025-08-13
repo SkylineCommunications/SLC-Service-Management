@@ -48,37 +48,55 @@ DATE        VERSION        AUTHOR            COMMENTS
 dd/mm/2025    1.0.0.1        XXX, Skyline    Initial version
 ****************************************************************************
 */
-
 namespace SLC_SM_Delete_Service_Item_1
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using DomHelpers.SlcServicemanagement;
+
+	using Library.Views;
+
 	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.Relationship;
+	using Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 	using Skyline.DataMiner.Utils.MediaOps.Common.IOData.Scheduling.Scripts.JobHandler;
 	using Skyline.DataMiner.Utils.MediaOps.Helpers.Scheduling;
 
+	using Models = Skyline.DataMiner.ProjectApi.ServiceManagement.API.Relationship.Models;
+
 	/// <summary>
-	/// Represents a DataMiner Automation script.
+	///     Represents a DataMiner Automation script.
 	/// </summary>
 	public class Script
 	{
+		private InteractiveController _controller;
 		private IEngine _engine;
 
 		/// <summary>
-		/// The script entry point.
+		///     The script entry point.
 		/// </summary>
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public void Run(IEngine engine)
 		{
+			/*
+			* Note:
+			* Do not remove the commented methods below!
+			* The lines are needed to execute an interactive automation script from the non-interactive automation script or from Visio!
+			*
+			* engine.ShowUI();
+			*/
 			try
 			{
 				_engine = engine;
+				_controller = new InteractiveController(engine);
 				RunSafe();
 			}
 			catch (ScriptAbortException)
@@ -100,29 +118,9 @@ namespace SLC_SM_Delete_Service_Item_1
 			}
 			catch (Exception e)
 			{
-				engine.ExitFail(e.Message);
+				var errorView = new ErrorView(engine, "Error", e.Message, e.ToString());
+				_controller.ShowDialog(errorView);
 			}
-		}
-
-		private void RunSafe()
-		{
-			string domIdRaw = _engine.GetScriptParam("DOM ID").Value;
-			Guid domId = JsonConvert.DeserializeObject<List<Guid>>(domIdRaw).FirstOrDefault();
-			if (domId == Guid.Empty)
-			{
-				throw new InvalidOperationException("No DOM ID provided as input to the script");
-			}
-
-			string serviceItemLabelRaw = _engine.GetScriptParam("Service Item Label").Value;
-			string serviceItemLabel = JsonConvert.DeserializeObject<List<string>>(serviceItemLabelRaw).FirstOrDefault()
-									  ?? throw new InvalidOperationException("No Service Item Label provided as input to the script");
-
-			var domHelper = new DomHelper(_engine.SendSLNetMessages, SlcServicemanagementIds.ModuleId);
-			var domInstance = domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(domId)).FirstOrDefault()
-							  ?? throw new InvalidOperationException($"No DOM Instance with ID '{domId}' found on the system!");
-
-			DeleteServiceItemFromInstance(domHelper, domInstance, serviceItemLabel);
-			throw new ScriptAbortException("OK");
 		}
 
 		private void DeleteServiceItemFromInstance(DomHelper helper, DomInstance domInstance, string label)
@@ -151,28 +149,6 @@ namespace SLC_SM_Delete_Service_Item_1
 			{
 				throw new InvalidOperationException($"DOM definition '{domInstance.DomDefinitionId}' not supported (yet).");
 			}
-		}
-
-		private bool LinkedReferenceStillActive(SlcServicemanagementIds.Enums.ServiceitemtypesEnum? serviceItemType, string implementationReference)
-		{
-			if (!Guid.TryParse(implementationReference, out Guid refId))
-			{
-				return false;
-			}
-
-			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Workflow)
-			{
-				// Check job
-				return LinkedJobStillActive(refId);
-			}
-
-			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking)
-			{
-				// Check booking
-				return LinkedBookingStillActive(refId);
-			}
-
-			return false;
 		}
 
 		private bool LinkedBookingStillActive(Guid refId)
@@ -228,6 +204,86 @@ namespace SLC_SM_Delete_Service_Item_1
 			}
 
 			throw new InvalidOperationException($"Job '{refId}' still active on the system. Please finish this job first before removing the service item from the inventory.");
+		}
+
+		private bool LinkedReferenceStillActive(SlcServicemanagementIds.Enums.ServiceitemtypesEnum? serviceItemType, string implementationReference)
+		{
+			if (!Guid.TryParse(implementationReference, out Guid refId))
+			{
+				return false;
+			}
+
+			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Workflow)
+			{
+				// Check job
+				return LinkedJobStillActive(refId);
+			}
+
+			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.SRMBooking)
+			{
+				// Check booking
+				return LinkedBookingStillActive(refId);
+			}
+
+			if (serviceItemType == SlcServicemanagementIds.Enums.ServiceitemtypesEnum.Service)
+			{
+				// Check linked item
+				return LinksStillExist(refId);
+			}
+
+			return false;
+		}
+
+		private bool LinksStillExist(Guid refId)
+		{
+			var linkHelper = new DataHelperLink(Engine.SLNetRaw);
+			Models.Link link = linkHelper.Read().Find(x => x.ID == refId);
+			if (link == null)
+			{
+				return false;
+			}
+
+			var dataHelper = new DataHelperService(Engine.SLNetRaw);
+
+			FilterElement<Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement.Models.Service> filter = new ORFilterElement<Skyline.DataMiner.ProjectApi.ServiceManagement.API.ServiceManagement.Models.Service>();
+			if (link.ChildID != null && Guid.TryParse(link.ChildID, out Guid childId))
+			{
+				filter = filter.OR(ServiceExposers.Guid.Equal(childId));
+			}
+
+			if (link.ParentID != null && Guid.TryParse(link.ParentID, out Guid parentId))
+			{
+				filter = filter.OR(ServiceExposers.Guid.Equal(parentId));
+			}
+
+			var services = dataHelper.Read(filter);
+			if (services.Count > 1)
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		private void RunSafe()
+		{
+			string domIdRaw = _engine.GetScriptParam("DOM ID").Value;
+			Guid domId = JsonConvert.DeserializeObject<List<Guid>>(domIdRaw).FirstOrDefault();
+			if (domId == Guid.Empty)
+			{
+				throw new InvalidOperationException("No DOM ID provided as input to the script");
+			}
+
+			string serviceItemLabelRaw = _engine.GetScriptParam("Service Item Label").Value;
+			string serviceItemLabel = JsonConvert.DeserializeObject<List<string>>(serviceItemLabelRaw).FirstOrDefault()
+			                          ?? throw new InvalidOperationException("No Service Item Label provided as input to the script");
+
+			var domHelper = new DomHelper(_engine.SendSLNetMessages, SlcServicemanagementIds.ModuleId);
+			var domInstance = domHelper.DomInstances.Read(DomInstanceExposers.Id.Equal(domId)).FirstOrDefault()
+			                  ?? throw new InvalidOperationException($"No DOM Instance with ID '{domId}' found on the system!");
+
+			DeleteServiceItemFromInstance(domHelper, domInstance, serviceItemLabel);
+			throw new ScriptAbortException("OK");
 		}
 	}
 }

@@ -882,7 +882,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="AppSettingsInstance"/> class. Creates an empty <see cref="AppSettingsInstance"/> instance with default settings.
         /// </summary>
-        public AppSettingsInstance(): base(SlcWorkflowIds.Definitions.AppSettings)
+        public AppSettingsInstance() : base(SlcWorkflowIds.Definitions.AppSettings)
         {
             InitializeProperties();
             AfterLoad();
@@ -891,7 +891,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="AppSettingsInstance"/> class. Creates an empty <see cref="AppSettingsInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public AppSettingsInstance(Guid id): base(SlcWorkflowIds.Definitions.AppSettings, id)
+        public AppSettingsInstance(Guid id) : base(SlcWorkflowIds.Definitions.AppSettings, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -901,7 +901,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="AppSettingsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="AppSettingsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public AppSettingsInstance(DomInstance domInstance): base(domInstance)
+        public AppSettingsInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.AppSettings))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.AppSettings)}'", nameof(domInstance));
@@ -919,8 +919,34 @@ namespace DomHelpers.SlcWorkflow
             return new AppSettingsInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="AppSettingsInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="AppSettingsInstance"/> object that is a deep copy of this instance.</returns>
+        public AppSettingsInstance Clone()
+        {
+            return new AppSettingsInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="AppSettingsInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="AppSettingsInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public AppSettingsInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new AppSettingsInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
             domInstance.Sections.Add(JobSettings.ToSection());
@@ -928,7 +954,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -942,7 +968,7 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
             var _jobSettings = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobSettings.Id));
             if (_jobSettings is null)
@@ -965,7 +991,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionDataInstance"/> class. Creates an empty <see cref="SessionDataInstance"/> instance with default settings.
         /// </summary>
-        public SessionDataInstance(): base(SlcWorkflowIds.Definitions.SessionData)
+        public SessionDataInstance() : base(SlcWorkflowIds.Definitions.SessionData)
         {
             InitializeProperties();
             AfterLoad();
@@ -974,7 +1000,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionDataInstance"/> class. Creates an empty <see cref="SessionDataInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public SessionDataInstance(Guid id): base(SlcWorkflowIds.Definitions.SessionData, id)
+        public SessionDataInstance(Guid id) : base(SlcWorkflowIds.Definitions.SessionData, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -984,7 +1010,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="SessionDataInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="SessionDataInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public SessionDataInstance(DomInstance domInstance): base(domInstance)
+        public SessionDataInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.SessionData))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.SessionData)}'", nameof(domInstance));
@@ -1000,7 +1026,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the SessionFilter section of the DOM Instance.
         /// </summary>
-        public IList<SessionFilterSection> SessionFilter { get; private set; }
+        public IList<SessionFilterSection> SessionFilters { get; private set; }
 
         /// <summary>
         /// Gets or sets the SessionDataUser section of the DOM Instance.
@@ -1012,8 +1038,34 @@ namespace DomHelpers.SlcWorkflow
             return new SessionDataInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="SessionDataInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataInstance"/> object that is a deep copy of this instance.</returns>
+        public SessionDataInstance Clone()
+        {
+            return new SessionDataInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="SessionDataInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public SessionDataInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new SessionDataInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
             if (SessionDataStore != null && !SessionDataStore.IsEmpty)
@@ -1021,7 +1073,7 @@ namespace DomHelpers.SlcWorkflow
                 domInstance.Sections.Add(SessionDataStore.ToSection());
             }
 
-            foreach (var item in SessionFilter)
+            foreach (var item in SessionFilters)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1031,7 +1083,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1045,7 +1097,7 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
             var _sessionDataStore = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.SessionDataStore.Id));
             if (_sessionDataStore is null)
@@ -1057,7 +1109,7 @@ namespace DomHelpers.SlcWorkflow
                 SessionDataStore = new SessionDataStoreSection(_sessionDataStore);
             }
 
-            SessionFilter = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.SessionFilter.Id)).Select(section => new SessionFilterSection(section)).ToList();
+            SessionFilters = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.SessionFilter.Id)).Select(section => new SessionFilterSection(section)).ToList();
             var _sessionDataUser = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.SessionDataUser.Id));
             if (_sessionDataUser is null)
             {
@@ -1079,7 +1131,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobsInstance"/> class. Creates an empty <see cref="JobsInstance"/> instance with default settings.
         /// </summary>
-        public JobsInstance(): base(SlcWorkflowIds.Definitions.Jobs)
+        public JobsInstance() : base(SlcWorkflowIds.Definitions.Jobs)
         {
             InitializeProperties();
             AfterLoad();
@@ -1088,7 +1140,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobsInstance"/> class. Creates an empty <see cref="JobsInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public JobsInstance(Guid id): base(SlcWorkflowIds.Definitions.Jobs, id)
+        public JobsInstance(Guid id) : base(SlcWorkflowIds.Definitions.Jobs, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1098,7 +1150,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="JobsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobsInstance(DomInstance domInstance): base(domInstance)
+        public JobsInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.Jobs))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.Jobs)}'", nameof(domInstance));
@@ -1120,12 +1172,12 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the Errors section of the DOM Instance.
         /// </summary>
-        public IList<ErrorsSection> Errors { get; private set; }
+        public IList<ErrorsSection> Errorses { get; private set; }
 
         /// <summary>
         /// Gets or sets the Nodes section of the DOM Instance.
         /// </summary>
-        public IList<NodesSection> Nodes { get; private set; }
+        public IList<NodesSection> Nodeses { get; private set; }
 
         /// <summary>
         /// Gets or sets the CostingAndBilling section of the DOM Instance.
@@ -1140,7 +1192,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the Connections section of the DOM Instance.
         /// </summary>
-        public IList<ConnectionsSection> Connections { get; private set; }
+        public IList<ConnectionsSection> Connectionses { get; private set; }
 
         /// <summary>
         /// Gets or sets the JobInfo section of the DOM Instance.
@@ -1150,7 +1202,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the CostingAndBillingDetails section of the DOM Instance.
         /// </summary>
-        public IList<CostingAndBillingDetailsSection> CostingAndBillingDetails { get; private set; }
+        public IList<CostingAndBillingDetailsSection> CostingAndBillingDetailses { get; private set; }
 
         /// <summary>
         /// Gets or sets the JobExecution section of the DOM Instance.
@@ -1160,23 +1212,49 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the NodeRelationships section of the DOM Instance.
         /// </summary>
-        public IList<NodeRelationshipsSection> NodeRelationships { get; private set; }
+        public IList<NodeRelationshipsSection> NodeRelationshipses { get; private set; }
 
         public static explicit operator JobsInstance(DomInstance instance)
         {
             return new JobsInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobsInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobsInstance"/> object that is a deep copy of this instance.</returns>
+        public JobsInstance Clone()
+        {
+            return new JobsInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobsInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobsInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public JobsInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new JobsInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            foreach (var item in Errors)
+            foreach (var item in Errorses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
-            foreach (var item in Nodes)
+            foreach (var item in Nodeses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1187,19 +1265,19 @@ namespace DomHelpers.SlcWorkflow
             }
 
             domInstance.Sections.Add(MonitoringSettings.ToSection());
-            foreach (var item in Connections)
+            foreach (var item in Connectionses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
             domInstance.Sections.Add(JobInfo.ToSection());
-            foreach (var item in CostingAndBillingDetails)
+            foreach (var item in CostingAndBillingDetailses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
 
             domInstance.Sections.Add(JobExecution.ToSection());
-            foreach (var item in NodeRelationships)
+            foreach (var item in NodeRelationshipses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1208,7 +1286,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1222,10 +1300,10 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
-            Errors = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
-            Nodes = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
+            Errorses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
+            Nodeses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
             var _costingAndBilling = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBilling.Id));
             if (_costingAndBilling is null)
             {
@@ -1246,7 +1324,7 @@ namespace DomHelpers.SlcWorkflow
                 MonitoringSettings = new MonitoringSettingsSection(_monitoringSettings);
             }
 
-            Connections = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
+            Connectionses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
             var _jobInfo = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobInfo.Id));
             if (_jobInfo is null)
             {
@@ -1257,7 +1335,7 @@ namespace DomHelpers.SlcWorkflow
                 JobInfo = new JobInfoSection(_jobInfo);
             }
 
-            CostingAndBillingDetails = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)).Select(section => new CostingAndBillingDetailsSection(section)).ToList();
+            CostingAndBillingDetailses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)).Select(section => new CostingAndBillingDetailsSection(section)).ToList();
             var _jobExecution = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobExecution.Id));
             if (_jobExecution is null)
             {
@@ -1268,7 +1346,7 @@ namespace DomHelpers.SlcWorkflow
                 JobExecution = new JobExecutionSection(_jobExecution);
             }
 
-            NodeRelationships = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeRelationships.Id)).Select(section => new NodeRelationshipsSection(section)).ToList();
+            NodeRelationshipses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.NodeRelationships.Id)).Select(section => new NodeRelationshipsSection(section)).ToList();
         }
     }
 
@@ -1281,7 +1359,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobsLiteInstance"/> class. Creates an empty <see cref="JobsLiteInstance"/> instance with default settings.
         /// </summary>
-        public JobsLiteInstance(): base(SlcWorkflowIds.Definitions.JobsLite)
+        public JobsLiteInstance() : base(SlcWorkflowIds.Definitions.JobsLite)
         {
             InitializeProperties();
             AfterLoad();
@@ -1290,7 +1368,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobsLiteInstance"/> class. Creates an empty <see cref="JobsLiteInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public JobsLiteInstance(Guid id): base(SlcWorkflowIds.Definitions.JobsLite, id)
+        public JobsLiteInstance(Guid id) : base(SlcWorkflowIds.Definitions.JobsLite, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1300,7 +1378,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobsLiteInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="JobsLiteInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobsLiteInstance(DomInstance domInstance): base(domInstance)
+        public JobsLiteInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.JobsLite))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.JobsLite)}'", nameof(domInstance));
@@ -1311,7 +1389,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the Errors section of the DOM Instance.
         /// </summary>
-        public IList<ErrorsSection> Errors { get; private set; }
+        public IList<ErrorsSection> Errorses { get; private set; }
 
         /// <summary>
         /// Gets or sets the JobLiteMetadata section of the DOM Instance.
@@ -1333,11 +1411,37 @@ namespace DomHelpers.SlcWorkflow
             return new JobsLiteInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobsLiteInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobsLiteInstance"/> object that is a deep copy of this instance.</returns>
+        public JobsLiteInstance Clone()
+        {
+            return new JobsLiteInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobsLiteInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobsLiteInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public JobsLiteInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new JobsLiteInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            foreach (var item in Errors)
+            foreach (var item in Errorses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1353,7 +1457,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1367,9 +1471,9 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
-            Errors = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
+            Errorses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Errors.Id)).Select(section => new ErrorsSection(section)).ToList();
             var _jobLiteMetadata = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobLiteMetadata.Id));
             if (_jobLiteMetadata is null)
             {
@@ -1411,7 +1515,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="RatesInstance"/> class. Creates an empty <see cref="RatesInstance"/> instance with default settings.
         /// </summary>
-        public RatesInstance(): base(SlcWorkflowIds.Definitions.Rates)
+        public RatesInstance() : base(SlcWorkflowIds.Definitions.Rates)
         {
             InitializeProperties();
             AfterLoad();
@@ -1420,7 +1524,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="RatesInstance"/> class. Creates an empty <see cref="RatesInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public RatesInstance(Guid id): base(SlcWorkflowIds.Definitions.Rates, id)
+        public RatesInstance(Guid id) : base(SlcWorkflowIds.Definitions.Rates, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1430,7 +1534,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="RatesInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="RatesInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public RatesInstance(DomInstance domInstance): base(domInstance)
+        public RatesInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.Rates))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.Rates)}'", nameof(domInstance));
@@ -1448,8 +1552,34 @@ namespace DomHelpers.SlcWorkflow
             return new RatesInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="RatesInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="RatesInstance"/> object that is a deep copy of this instance.</returns>
+        public RatesInstance Clone()
+        {
+            return new RatesInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="RatesInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="RatesInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public RatesInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new RatesInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
             domInstance.Sections.Add(Rate.ToSection());
@@ -1457,7 +1587,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1471,7 +1601,7 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
             var _rate = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Rate.Id));
             if (_rate is null)
@@ -1494,7 +1624,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobNodeRelationshipActionsInstance"/> class. Creates an empty <see cref="JobNodeRelationshipActionsInstance"/> instance with default settings.
         /// </summary>
-        public JobNodeRelationshipActionsInstance(): base(SlcWorkflowIds.Definitions.JobNodeRelationshipActions)
+        public JobNodeRelationshipActionsInstance() : base(SlcWorkflowIds.Definitions.JobNodeRelationshipActions)
         {
             InitializeProperties();
             AfterLoad();
@@ -1503,7 +1633,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobNodeRelationshipActionsInstance"/> class. Creates an empty <see cref="JobNodeRelationshipActionsInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public JobNodeRelationshipActionsInstance(Guid id): base(SlcWorkflowIds.Definitions.JobNodeRelationshipActions, id)
+        public JobNodeRelationshipActionsInstance(Guid id) : base(SlcWorkflowIds.Definitions.JobNodeRelationshipActions, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1513,7 +1643,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobNodeRelationshipActionsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="JobNodeRelationshipActionsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobNodeRelationshipActionsInstance(DomInstance domInstance): base(domInstance)
+        public JobNodeRelationshipActionsInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.JobNodeRelationshipActions))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.JobNodeRelationshipActions)}'", nameof(domInstance));
@@ -1536,8 +1666,34 @@ namespace DomHelpers.SlcWorkflow
             return new JobNodeRelationshipActionsInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobNodeRelationshipActionsInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipActionsInstance"/> object that is a deep copy of this instance.</returns>
+        public JobNodeRelationshipActionsInstance Clone()
+        {
+            return new JobNodeRelationshipActionsInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobNodeRelationshipActionsInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipActionsInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public JobNodeRelationshipActionsInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new JobNodeRelationshipActionsInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
             domInstance.Sections.Add(JobNodeRelationshipGeneralActions.ToSection());
@@ -1546,7 +1702,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1560,7 +1716,7 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
             var _jobNodeRelationshipGeneralActions = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.Id));
             if (_jobNodeRelationshipGeneralActions is null)
@@ -1593,7 +1749,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkflowsInstance"/> class. Creates an empty <see cref="WorkflowsInstance"/> instance with default settings.
         /// </summary>
-        public WorkflowsInstance(): base(SlcWorkflowIds.Definitions.Workflows)
+        public WorkflowsInstance() : base(SlcWorkflowIds.Definitions.Workflows)
         {
             InitializeProperties();
             AfterLoad();
@@ -1602,7 +1758,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkflowsInstance"/> class. Creates an empty <see cref="WorkflowsInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public WorkflowsInstance(Guid id): base(SlcWorkflowIds.Definitions.Workflows, id)
+        public WorkflowsInstance(Guid id) : base(SlcWorkflowIds.Definitions.Workflows, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1612,7 +1768,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="WorkflowsInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="WorkflowsInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public WorkflowsInstance(DomInstance domInstance): base(domInstance)
+        public WorkflowsInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.Workflows))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.Workflows)}'", nameof(domInstance));
@@ -1644,7 +1800,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the Connections section of the DOM Instance.
         /// </summary>
-        public IList<ConnectionsSection> Connections { get; private set; }
+        public IList<ConnectionsSection> Connectionses { get; private set; }
 
         /// <summary>
         /// Gets or sets the WorkflowExecution section of the DOM Instance.
@@ -1661,8 +1817,34 @@ namespace DomHelpers.SlcWorkflow
             return new WorkflowsInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="WorkflowsInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowsInstance"/> object that is a deep copy of this instance.</returns>
+        public WorkflowsInstance Clone()
+        {
+            return new WorkflowsInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="WorkflowsInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowsInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public WorkflowsInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new WorkflowsInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
             foreach (var item in Nodes)
@@ -1671,7 +1853,7 @@ namespace DomHelpers.SlcWorkflow
             }
 
             domInstance.Sections.Add(MonitoringSettings.ToSection());
-            foreach (var item in Connections)
+            foreach (var item in Connectionses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1682,7 +1864,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1696,7 +1878,7 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
             Nodes = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Nodes.Id)).Select(section => new NodesSection(section)).ToList();
             var _monitoringSettings = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.MonitoringSettings.Id));
@@ -1709,7 +1891,7 @@ namespace DomHelpers.SlcWorkflow
                 MonitoringSettings = new MonitoringSettingsSection(_monitoringSettings);
             }
 
-            Connections = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
+            Connectionses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.Connections.Id)).Select(section => new ConnectionsSection(section)).ToList();
             var _workflowExecution = domInstance.Sections.FirstOrDefault(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.WorkflowExecution.Id));
             if (_workflowExecution is null)
             {
@@ -1741,7 +1923,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class. Creates an empty <see cref="ConfigurationInstance"/> instance with default settings.
         /// </summary>
-        public ConfigurationInstance(): base(SlcWorkflowIds.Definitions.Configuration)
+        public ConfigurationInstance() : base(SlcWorkflowIds.Definitions.Configuration)
         {
             InitializeProperties();
             AfterLoad();
@@ -1750,7 +1932,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class. Creates an empty <see cref="ConfigurationInstance"/> instance with default settings and a specific ID.
         /// </summary>
-        public ConfigurationInstance(Guid id): base(SlcWorkflowIds.Definitions.Configuration, id)
+        public ConfigurationInstance(Guid id) : base(SlcWorkflowIds.Definitions.Configuration, id)
         {
             InitializeProperties();
             AfterLoad();
@@ -1760,7 +1942,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="ConfigurationInstance"/> class using the specified <paramref name="domInstance"/> for initializing the object.
         /// </summary>
         /// <param name="domInstance">The <see cref="DomInstance"/> object that provides data for initializing the <see cref="ConfigurationInstance"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ConfigurationInstance(DomInstance domInstance): base(domInstance)
+        public ConfigurationInstance(DomInstance domInstance) : base(domInstance)
         {
             if (!domInstance.DomDefinitionId.Equals(SlcWorkflowIds.Definitions.Configuration))
                 throw new ArgumentException($"The given domInstance, is not of type '{nameof(SlcWorkflowIds.Definitions.Configuration)}'", nameof(domInstance));
@@ -1771,18 +1953,44 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Gets or sets the ProfileParameterValues section of the DOM Instance.
         /// </summary>
-        public IList<ProfileParameterValuesSection> ProfileParameterValues { get; private set; }
+        public IList<ProfileParameterValuesSection> ProfileParameterValueses { get; private set; }
 
         public static explicit operator ConfigurationInstance(DomInstance instance)
         {
             return new ConfigurationInstance(instance);
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ConfigurationInstance"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ConfigurationInstance"/> object that is a deep copy of this instance.</returns>
+        public ConfigurationInstance Clone()
+        {
+            return new ConfigurationInstance((DomInstance)this.ToInstance().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ConfigurationInstance"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ConfigurationInstance"/> object that is a copy of this instance but with a different id.</returns>
+        public ConfigurationInstance Duplicate()
+        {
+            var instance = (DomInstance)this.ToInstance().Clone();
+            instance.ID = new DomInstanceId(Guid.NewGuid())
+            {ModuleId = ModuleId};
+            foreach (var section in instance.Sections)
+            {
+                section.ID = new Skyline.DataMiner.Net.Sections.SectionID(Guid.NewGuid());
+            }
+
+            return new ConfigurationInstance(instance);
+        }
+
         /// <inheritdoc />
-        protected override DomInstance InternalToInstance()
+        protected sealed override DomInstance InternalToInstance()
         {
             domInstance.Sections.Clear();
-            foreach (var item in ProfileParameterValues)
+            foreach (var item in ProfileParameterValueses)
             {
                 domInstance.Sections.Add(item.ToSection());
             }
@@ -1791,7 +1999,7 @@ namespace DomHelpers.SlcWorkflow
         }
 
         /// <inheritdoc />
-        public override void Save(DomHelper helper)
+        public sealed override void Save(DomHelper helper)
         {
             var exist = helper.DomInstances.Read(DomInstanceExposers.Id.Equal(domInstance.ID)).FirstOrDefault();
             var instance = ToInstance();
@@ -1805,9 +2013,9 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
-        protected override void InitializeProperties()
+        protected sealed override void InitializeProperties()
         {
-            ProfileParameterValues = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.ProfileParameterValues.Id)).Select(section => new ProfileParameterValuesSection(section)).ToList();
+            ProfileParameterValueses = domInstance.Sections.Where(section => section.SectionDefinitionID.Equals(SlcWorkflowIds.Sections.ProfileParameterValues.Id)).Select(section => new ProfileParameterValuesSection(section)).ToList();
         }
     }
 }
@@ -1837,7 +2045,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="ErrorsSection"/> class. Creates an empty <see cref="ErrorsSection"/> object with default settings.
         /// </summary>
-        public ErrorsSection(): base(SlcWorkflowIds.Sections.Errors.Id)
+        public ErrorsSection() : base(SlcWorkflowIds.Sections.Errors.Id)
         {
         }
 
@@ -1845,7 +2053,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="ErrorsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ErrorsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ErrorsSection(Section section): base(section, SlcWorkflowIds.Sections.Errors.Id)
+        public ErrorsSection(Section section) : base(section, SlcWorkflowIds.Sections.Errors.Id)
         {
         }
 
@@ -1935,6 +2143,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ErrorsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ErrorsSection"/> object that is a deep copy of this section.</returns>
+        public ErrorsSection Clone()
+        {
+            return new ErrorsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ErrorsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ErrorsSection"/> object that is a copy of this section but with a different id.</returns>
+        public ErrorsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new ErrorsSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -1955,7 +2183,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="RateSection"/> class. Creates an empty <see cref="RateSection"/> object with default settings.
         /// </summary>
-        public RateSection(): base(SlcWorkflowIds.Sections.Rate.Id)
+        public RateSection() : base(SlcWorkflowIds.Sections.Rate.Id)
         {
         }
 
@@ -1963,7 +2191,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="RateSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="RateSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public RateSection(Section section): base(section, SlcWorkflowIds.Sections.Rate.Id)
+        public RateSection(Section section) : base(section, SlcWorkflowIds.Sections.Rate.Id)
         {
         }
 
@@ -2182,6 +2410,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="RateSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="RateSection"/> object that is a deep copy of this section.</returns>
+        public RateSection Clone()
+        {
+            return new RateSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="RateSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="RateSection"/> object that is a copy of this section but with a different id.</returns>
+        public RateSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new RateSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -2202,7 +2450,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobNodeRelationshipGeneralActionsSection"/> class. Creates an empty <see cref="JobNodeRelationshipGeneralActionsSection"/> object with default settings.
         /// </summary>
-        public JobNodeRelationshipGeneralActionsSection(): base(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.Id)
+        public JobNodeRelationshipGeneralActionsSection() : base(SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.Id)
         {
         }
 
@@ -2210,7 +2458,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobNodeRelationshipGeneralActionsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobNodeRelationshipGeneralActionsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobNodeRelationshipGeneralActionsSection(Section section): base(section, SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.Id)
+        public JobNodeRelationshipGeneralActionsSection(Section section) : base(section, SlcWorkflowIds.Sections.JobNodeRelationshipGeneralActions.Id)
         {
         }
 
@@ -2300,6 +2548,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobNodeRelationshipGeneralActionsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipGeneralActionsSection"/> object that is a deep copy of this section.</returns>
+        public JobNodeRelationshipGeneralActionsSection Clone()
+        {
+            return new JobNodeRelationshipGeneralActionsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobNodeRelationshipGeneralActionsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipGeneralActionsSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobNodeRelationshipGeneralActionsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobNodeRelationshipGeneralActionsSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -2320,7 +2588,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobLiteMetadataSection"/> class. Creates an empty <see cref="JobLiteMetadataSection"/> object with default settings.
         /// </summary>
-        public JobLiteMetadataSection(): base(SlcWorkflowIds.Sections.JobLiteMetadata.Id)
+        public JobLiteMetadataSection() : base(SlcWorkflowIds.Sections.JobLiteMetadata.Id)
         {
         }
 
@@ -2328,7 +2596,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobLiteMetadataSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobLiteMetadataSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobLiteMetadataSection(Section section): base(section, SlcWorkflowIds.Sections.JobLiteMetadata.Id)
+        public JobLiteMetadataSection(Section section) : base(section, SlcWorkflowIds.Sections.JobLiteMetadata.Id)
         {
         }
 
@@ -2504,6 +2772,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobLiteMetadataSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobLiteMetadataSection"/> object that is a deep copy of this section.</returns>
+        public JobLiteMetadataSection Clone()
+        {
+            return new JobLiteMetadataSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobLiteMetadataSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobLiteMetadataSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobLiteMetadataSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobLiteMetadataSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -2522,7 +2810,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionDataStoreSection"/> class. Creates an empty <see cref="SessionDataStoreSection"/> object with default settings.
         /// </summary>
-        public SessionDataStoreSection(): base(SlcWorkflowIds.Sections.SessionDataStore.Id)
+        public SessionDataStoreSection() : base(SlcWorkflowIds.Sections.SessionDataStore.Id)
         {
         }
 
@@ -2530,7 +2818,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="SessionDataStoreSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="SessionDataStoreSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public SessionDataStoreSection(Section section): base(section, SlcWorkflowIds.Sections.SessionDataStore.Id)
+        public SessionDataStoreSection(Section section) : base(section, SlcWorkflowIds.Sections.SessionDataStore.Id)
         {
         }
 
@@ -2576,6 +2864,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="SessionDataStoreSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataStoreSection"/> object that is a deep copy of this section.</returns>
+        public SessionDataStoreSection Clone()
+        {
+            return new SessionDataStoreSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="SessionDataStoreSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataStoreSection"/> object that is a copy of this section but with a different id.</returns>
+        public SessionDataStoreSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new SessionDataStoreSection(section);
+        }
     }
 
     /// <summary>
@@ -2587,7 +2895,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobSettingsSection"/> class. Creates an empty <see cref="JobSettingsSection"/> object with default settings.
         /// </summary>
-        public JobSettingsSection(): base(SlcWorkflowIds.Sections.JobSettings.Id)
+        public JobSettingsSection() : base(SlcWorkflowIds.Sections.JobSettings.Id)
         {
         }
 
@@ -2595,7 +2903,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobSettingsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobSettingsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobSettingsSection(Section section): base(section, SlcWorkflowIds.Sections.JobSettings.Id)
+        public JobSettingsSection(Section section) : base(section, SlcWorkflowIds.Sections.JobSettings.Id)
         {
         }
 
@@ -2813,6 +3121,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobSettingsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobSettingsSection"/> object that is a deep copy of this section.</returns>
+        public JobSettingsSection Clone()
+        {
+            return new JobSettingsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobSettingsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobSettingsSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobSettingsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobSettingsSection(section);
+        }
     }
 
     /// <summary>
@@ -2824,7 +3152,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="NodesSection"/> class. Creates an empty <see cref="NodesSection"/> object with default settings.
         /// </summary>
-        public NodesSection(): base(SlcWorkflowIds.Sections.Nodes.Id)
+        public NodesSection() : base(SlcWorkflowIds.Sections.Nodes.Id)
         {
         }
 
@@ -2832,7 +3160,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="NodesSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="NodesSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public NodesSection(Section section): base(section, SlcWorkflowIds.Sections.Nodes.Id)
+        public NodesSection(Section section) : base(section, SlcWorkflowIds.Sections.Nodes.Id)
         {
         }
 
@@ -3695,6 +4023,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="NodesSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="NodesSection"/> object that is a deep copy of this section.</returns>
+        public NodesSection Clone()
+        {
+            return new NodesSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="NodesSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="NodesSection"/> object that is a copy of this section but with a different id.</returns>
+        public NodesSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new NodesSection(section);
+        }
     }
 
     /// <summary>
@@ -3706,7 +4054,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="CostingAndBillingSection"/> class. Creates an empty <see cref="CostingAndBillingSection"/> object with default settings.
         /// </summary>
-        public CostingAndBillingSection(): base(SlcWorkflowIds.Sections.CostingAndBilling.Id)
+        public CostingAndBillingSection() : base(SlcWorkflowIds.Sections.CostingAndBilling.Id)
         {
             AdditionalContacts = new List<Guid>();
         }
@@ -3715,7 +4063,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="CostingAndBillingSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="CostingAndBillingSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public CostingAndBillingSection(Section section): base(section, SlcWorkflowIds.Sections.CostingAndBilling.Id)
+        public CostingAndBillingSection(Section section) : base(section, SlcWorkflowIds.Sections.CostingAndBilling.Id)
         {
             var additionalContacts = section.GetListValue<Guid>(SlcWorkflowIds.Sections.CostingAndBilling.AdditionalContacts);
             AdditionalContacts = additionalContacts != null ? additionalContacts.Values : new List<Guid>();
@@ -4340,6 +4688,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="CostingAndBillingSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="CostingAndBillingSection"/> object that is a deep copy of this section.</returns>
+        public CostingAndBillingSection Clone()
+        {
+            return new CostingAndBillingSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="CostingAndBillingSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="CostingAndBillingSection"/> object that is a copy of this section but with a different id.</returns>
+        public CostingAndBillingSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new CostingAndBillingSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -4360,7 +4728,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="MonitoringSettingsSection"/> class. Creates an empty <see cref="MonitoringSettingsSection"/> object with default settings.
         /// </summary>
-        public MonitoringSettingsSection(): base(SlcWorkflowIds.Sections.MonitoringSettings.Id)
+        public MonitoringSettingsSection() : base(SlcWorkflowIds.Sections.MonitoringSettings.Id)
         {
         }
 
@@ -4368,7 +4736,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="MonitoringSettingsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="MonitoringSettingsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public MonitoringSettingsSection(Section section): base(section, SlcWorkflowIds.Sections.MonitoringSettings.Id)
+        public MonitoringSettingsSection(Section section) : base(section, SlcWorkflowIds.Sections.MonitoringSettings.Id)
         {
         }
 
@@ -4543,6 +4911,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="MonitoringSettingsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="MonitoringSettingsSection"/> object that is a deep copy of this section.</returns>
+        public MonitoringSettingsSection Clone()
+        {
+            return new MonitoringSettingsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="MonitoringSettingsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="MonitoringSettingsSection"/> object that is a copy of this section but with a different id.</returns>
+        public MonitoringSettingsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new MonitoringSettingsSection(section);
+        }
     }
 
     /// <summary>
@@ -4554,7 +4942,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionFilterSection"/> class. Creates an empty <see cref="SessionFilterSection"/> object with default settings.
         /// </summary>
-        public SessionFilterSection(): base(SlcWorkflowIds.Sections.SessionFilter.Id)
+        public SessionFilterSection() : base(SlcWorkflowIds.Sections.SessionFilter.Id)
         {
         }
 
@@ -4562,7 +4950,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="SessionFilterSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="SessionFilterSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public SessionFilterSection(Section section): base(section, SlcWorkflowIds.Sections.SessionFilter.Id)
+        public SessionFilterSection(Section section) : base(section, SlcWorkflowIds.Sections.SessionFilter.Id)
         {
         }
 
@@ -4694,6 +5082,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="SessionFilterSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="SessionFilterSection"/> object that is a deep copy of this section.</returns>
+        public SessionFilterSection Clone()
+        {
+            return new SessionFilterSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="SessionFilterSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="SessionFilterSection"/> object that is a copy of this section but with a different id.</returns>
+        public SessionFilterSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new SessionFilterSection(section);
+        }
     }
 
     /// <summary>
@@ -4705,7 +5113,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobNodeRelationshipReplaceActionsSection"/> class. Creates an empty <see cref="JobNodeRelationshipReplaceActionsSection"/> object with default settings.
         /// </summary>
-        public JobNodeRelationshipReplaceActionsSection(): base(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.Id)
+        public JobNodeRelationshipReplaceActionsSection() : base(SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.Id)
         {
         }
 
@@ -4713,7 +5121,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobNodeRelationshipReplaceActionsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobNodeRelationshipReplaceActionsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobNodeRelationshipReplaceActionsSection(Section section): base(section, SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.Id)
+        public JobNodeRelationshipReplaceActionsSection(Section section) : base(section, SlcWorkflowIds.Sections.JobNodeRelationshipReplaceActions.Id)
         {
         }
 
@@ -4846,6 +5254,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobNodeRelationshipReplaceActionsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipReplaceActionsSection"/> object that is a deep copy of this section.</returns>
+        public JobNodeRelationshipReplaceActionsSection Clone()
+        {
+            return new JobNodeRelationshipReplaceActionsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobNodeRelationshipReplaceActionsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobNodeRelationshipReplaceActionsSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobNodeRelationshipReplaceActionsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobNodeRelationshipReplaceActionsSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -4864,7 +5292,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="ConnectionsSection"/> class. Creates an empty <see cref="ConnectionsSection"/> object with default settings.
         /// </summary>
-        public ConnectionsSection(): base(SlcWorkflowIds.Sections.Connections.Id)
+        public ConnectionsSection() : base(SlcWorkflowIds.Sections.Connections.Id)
         {
         }
 
@@ -4872,7 +5300,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="ConnectionsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ConnectionsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ConnectionsSection(Section section): base(section, SlcWorkflowIds.Sections.Connections.Id)
+        public ConnectionsSection(Section section) : base(section, SlcWorkflowIds.Sections.Connections.Id)
         {
         }
 
@@ -5305,6 +5733,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ConnectionsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ConnectionsSection"/> object that is a deep copy of this section.</returns>
+        public ConnectionsSection Clone()
+        {
+            return new ConnectionsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ConnectionsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ConnectionsSection"/> object that is a copy of this section but with a different id.</returns>
+        public ConnectionsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new ConnectionsSection(section);
+        }
     }
 
     /// <summary>
@@ -5316,7 +5764,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobInfoSection"/> class. Creates an empty <see cref="JobInfoSection"/> object with default settings.
         /// </summary>
-        public JobInfoSection(): base(SlcWorkflowIds.Sections.JobInfo.Id)
+        public JobInfoSection() : base(SlcWorkflowIds.Sections.JobInfo.Id)
         {
         }
 
@@ -5324,7 +5772,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobInfoSection(Section section): base(section, SlcWorkflowIds.Sections.JobInfo.Id)
+        public JobInfoSection(Section section) : base(section, SlcWorkflowIds.Sections.JobInfo.Id)
         {
         }
 
@@ -6059,6 +6507,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobInfoSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobInfoSection"/> object that is a deep copy of this section.</returns>
+        public JobInfoSection Clone()
+        {
+            return new JobInfoSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobInfoSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobInfoSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobInfoSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobInfoSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -6081,7 +6549,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="CostingAndBillingDetailsSection"/> class. Creates an empty <see cref="CostingAndBillingDetailsSection"/> object with default settings.
         /// </summary>
-        public CostingAndBillingDetailsSection(): base(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
+        public CostingAndBillingDetailsSection() : base(SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
         {
             Rates = new List<Guid>();
         }
@@ -6090,7 +6558,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="CostingAndBillingDetailsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="CostingAndBillingDetailsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public CostingAndBillingDetailsSection(Section section): base(section, SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
+        public CostingAndBillingDetailsSection(Section section) : base(section, SlcWorkflowIds.Sections.CostingAndBillingDetails.Id)
         {
             var rates = section.GetListValue<Guid>(SlcWorkflowIds.Sections.CostingAndBillingDetails.Rates);
             Rates = rates != null ? rates.Values : new List<Guid>();
@@ -6414,6 +6882,26 @@ namespace DomHelpers.SlcWorkflow
         /// </remarks>
         public IList<Guid> Rates { get; private set; }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="CostingAndBillingDetailsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="CostingAndBillingDetailsSection"/> object that is a deep copy of this section.</returns>
+        public CostingAndBillingDetailsSection Clone()
+        {
+            return new CostingAndBillingDetailsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="CostingAndBillingDetailsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="CostingAndBillingDetailsSection"/> object that is a copy of this section but with a different id.</returns>
+        public CostingAndBillingDetailsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new CostingAndBillingDetailsSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -6434,7 +6922,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkflowExecutionSection"/> class. Creates an empty <see cref="WorkflowExecutionSection"/> object with default settings.
         /// </summary>
-        public WorkflowExecutionSection(): base(SlcWorkflowIds.Sections.WorkflowExecution.Id)
+        public WorkflowExecutionSection() : base(SlcWorkflowIds.Sections.WorkflowExecution.Id)
         {
         }
 
@@ -6442,7 +6930,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="WorkflowExecutionSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="WorkflowExecutionSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public WorkflowExecutionSection(Section section): base(section, SlcWorkflowIds.Sections.WorkflowExecution.Id)
+        public WorkflowExecutionSection(Section section) : base(section, SlcWorkflowIds.Sections.WorkflowExecution.Id)
         {
         }
 
@@ -6531,6 +7019,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="WorkflowExecutionSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowExecutionSection"/> object that is a deep copy of this section.</returns>
+        public WorkflowExecutionSection Clone()
+        {
+            return new WorkflowExecutionSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="WorkflowExecutionSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowExecutionSection"/> object that is a copy of this section but with a different id.</returns>
+        public WorkflowExecutionSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new WorkflowExecutionSection(section);
+        }
     }
 
     /// <summary>
@@ -6542,7 +7050,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="ProfileParameterValuesSection"/> class. Creates an empty <see cref="ProfileParameterValuesSection"/> object with default settings.
         /// </summary>
-        public ProfileParameterValuesSection(): base(SlcWorkflowIds.Sections.ProfileParameterValues.Id)
+        public ProfileParameterValuesSection() : base(SlcWorkflowIds.Sections.ProfileParameterValues.Id)
         {
         }
 
@@ -6550,7 +7058,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="ProfileParameterValuesSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="ProfileParameterValuesSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public ProfileParameterValuesSection(Section section): base(section, SlcWorkflowIds.Sections.ProfileParameterValues.Id)
+        public ProfileParameterValuesSection(Section section) : base(section, SlcWorkflowIds.Sections.ProfileParameterValues.Id)
         {
         }
 
@@ -6726,6 +7234,26 @@ namespace DomHelpers.SlcWorkflow
             }
         }
 
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="ProfileParameterValuesSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="ProfileParameterValuesSection"/> object that is a deep copy of this section.</returns>
+        public ProfileParameterValuesSection Clone()
+        {
+            return new ProfileParameterValuesSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="ProfileParameterValuesSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="ProfileParameterValuesSection"/> object that is a copy of this section but with a different id.</returns>
+        public ProfileParameterValuesSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new ProfileParameterValuesSection(section);
+        }
+
         /// <inheritdoc />
         protected override Section InternalToSection()
         {
@@ -6744,7 +7272,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="SessionDataUserSection"/> class. Creates an empty <see cref="SessionDataUserSection"/> object with default settings.
         /// </summary>
-        public SessionDataUserSection(): base(SlcWorkflowIds.Sections.SessionDataUser.Id)
+        public SessionDataUserSection() : base(SlcWorkflowIds.Sections.SessionDataUser.Id)
         {
         }
 
@@ -6752,7 +7280,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="SessionDataUserSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="SessionDataUserSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public SessionDataUserSection(Section section): base(section, SlcWorkflowIds.Sections.SessionDataUser.Id)
+        public SessionDataUserSection(Section section) : base(section, SlcWorkflowIds.Sections.SessionDataUser.Id)
         {
         }
 
@@ -6798,6 +7326,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="SessionDataUserSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataUserSection"/> object that is a deep copy of this section.</returns>
+        public SessionDataUserSection Clone()
+        {
+            return new SessionDataUserSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="SessionDataUserSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="SessionDataUserSection"/> object that is a copy of this section but with a different id.</returns>
+        public SessionDataUserSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new SessionDataUserSection(section);
+        }
     }
 
     /// <summary>
@@ -6809,7 +7357,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="JobExecutionSection"/> class. Creates an empty <see cref="JobExecutionSection"/> object with default settings.
         /// </summary>
-        public JobExecutionSection(): base(SlcWorkflowIds.Sections.JobExecution.Id)
+        public JobExecutionSection() : base(SlcWorkflowIds.Sections.JobExecution.Id)
         {
         }
 
@@ -6817,7 +7365,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="JobExecutionSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="JobExecutionSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public JobExecutionSection(Section section): base(section, SlcWorkflowIds.Sections.JobExecution.Id)
+        public JobExecutionSection(Section section) : base(section, SlcWorkflowIds.Sections.JobExecution.Id)
         {
         }
 
@@ -6949,6 +7497,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="JobExecutionSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="JobExecutionSection"/> object that is a deep copy of this section.</returns>
+        public JobExecutionSection Clone()
+        {
+            return new JobExecutionSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="JobExecutionSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="JobExecutionSection"/> object that is a copy of this section but with a different id.</returns>
+        public JobExecutionSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new JobExecutionSection(section);
+        }
     }
 
     /// <summary>
@@ -6960,7 +7528,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="NodeRelationshipsSection"/> class. Creates an empty <see cref="NodeRelationshipsSection"/> object with default settings.
         /// </summary>
-        public NodeRelationshipsSection(): base(SlcWorkflowIds.Sections.NodeRelationships.Id)
+        public NodeRelationshipsSection() : base(SlcWorkflowIds.Sections.NodeRelationships.Id)
         {
         }
 
@@ -6968,7 +7536,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="NodeRelationshipsSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="NodeRelationshipsSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public NodeRelationshipsSection(Section section): base(section, SlcWorkflowIds.Sections.NodeRelationships.Id)
+        public NodeRelationshipsSection(Section section) : base(section, SlcWorkflowIds.Sections.NodeRelationships.Id)
         {
         }
 
@@ -7100,6 +7668,26 @@ namespace DomHelpers.SlcWorkflow
                 }
             }
         }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="NodeRelationshipsSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="NodeRelationshipsSection"/> object that is a deep copy of this section.</returns>
+        public NodeRelationshipsSection Clone()
+        {
+            return new NodeRelationshipsSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="NodeRelationshipsSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="NodeRelationshipsSection"/> object that is a copy of this section but with a different id.</returns>
+        public NodeRelationshipsSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new NodeRelationshipsSection(section);
+        }
     }
 
     /// <summary>
@@ -7111,7 +7699,7 @@ namespace DomHelpers.SlcWorkflow
         /// <summary>
         /// Initializes a new instance of the <see cref="WorkflowInfoSection"/> class. Creates an empty <see cref="WorkflowInfoSection"/> object with default settings.
         /// </summary>
-        public WorkflowInfoSection(): base(SlcWorkflowIds.Sections.WorkflowInfo.Id)
+        public WorkflowInfoSection() : base(SlcWorkflowIds.Sections.WorkflowInfo.Id)
         {
         }
 
@@ -7119,7 +7707,7 @@ namespace DomHelpers.SlcWorkflow
         /// Initializes a new instance of the <see cref="WorkflowInfoSection"/> class using the specified <paramref name="section"/> for initializing the object.
         /// </summary>
         /// <param name="section">The <see cref="Section"/> object that provides data for initializing the <see cref="WorkflowInfoSection"/>. If the section is <c>null</c>, the constructor will not perform any initialization.</param>
-        public WorkflowInfoSection(Section section): base(section, SlcWorkflowIds.Sections.WorkflowInfo.Id)
+        public WorkflowInfoSection(Section section) : base(section, SlcWorkflowIds.Sections.WorkflowInfo.Id)
         {
         }
 
@@ -7293,6 +7881,26 @@ namespace DomHelpers.SlcWorkflow
                     section.AddOrUpdateValue(SlcWorkflowIds.Sections.WorkflowInfo.Priority, (Int32)value);
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates a deep copy of the current <see cref="WorkflowInfoSection"/>.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowInfoSection"/> object that is a deep copy of this section.</returns>
+        public WorkflowInfoSection Clone()
+        {
+            return new WorkflowInfoSection((Section)this.ToSection().Clone());
+        }
+
+        /// <summary>
+        /// Creates a duplicate of the current <see cref="WorkflowInfoSection"/> with a new id.
+        /// </summary>
+        /// <returns>A new <see cref="WorkflowInfoSection"/> object that is a copy of this section but with a different id.</returns>
+        public WorkflowInfoSection Duplicate()
+        {
+            var section = (Section)this.ToSection().Clone();
+            section.ID = new SectionID(Guid.NewGuid());
+            return new WorkflowInfoSection(section);
         }
 
         /// <inheritdoc />
