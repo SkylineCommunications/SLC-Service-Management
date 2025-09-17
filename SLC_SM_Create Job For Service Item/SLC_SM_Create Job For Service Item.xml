@@ -20,6 +20,9 @@
 		<ScriptParameter id="11" type="string" values="">
 			<Description>Service Item Label</Description>
 		</ScriptParameter>
+		<ScriptParameter id="12" type="string" values="">
+			<Description>DmaIp</Description>
+		</ScriptParameter>
 	</Parameters>
 
 	<Script>

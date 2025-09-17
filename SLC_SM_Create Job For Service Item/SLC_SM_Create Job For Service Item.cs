@@ -61,6 +61,7 @@ namespace SLCSMCreateJobForServiceItem
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.ResourceManager.Objects;
@@ -205,12 +206,14 @@ namespace SLCSMCreateJobForServiceItem
 			var serviceObjectType = GetOrCreateObjectType(relationshipHelper, "Service");
 			var jobObjectType = GetOrCreateObjectType(relationshipHelper, "Job");
 
-			var linkDetailsConfiguration = CreateLinkDetailsConfiguration(instance, job, serviceObjectType, jobObjectType);
+			var linkDetailsConfiguration = CreateLinkDetailsConfiguration(engine, instance, job, serviceObjectType, jobObjectType);
 			relationshipHelper.CreateLink(linkDetailsConfiguration);
 		}
 
-		private LinkConfiguration CreateLinkDetailsConfiguration(IServiceInstanceBase instance, JobsInstance job, Guid serviceObjectType, Guid jobObjectType)
+		private LinkConfiguration CreateLinkDetailsConfiguration(IEngine engine, IServiceInstanceBase instance, JobsInstance job, Guid serviceObjectType, Guid jobObjectType)
 		{
+			var dmaIp = JsonConvert.DeserializeObject<string[]>(engine.GetScriptParam("DmaIp").Value).Single();
+
 			var linkConfiguration = new LinkConfiguration()
 			{
 				Child = new LinkDetailsConfiguration()
@@ -218,7 +221,19 @@ namespace SLCSMCreateJobForServiceItem
 					DomObjectTypeId = serviceObjectType,
 					ObjectId = instance.GetId().Id.ToString(),
 					ObjectName = instance.GetName(),
-					URL = "Link to open the service panel on service iventory app",
+					URL = $"{dmaIp}/app/" +
+					"b72d4eb8-5b7a-409d-8aba-aec9c7e01eb7/" +
+					"Service%20List" +
+					"?object%20manager%20instances=(slc)servicemanagement" +
+					$"%2F{instance.GetId().Id}" +
+					"#%7B%22actions%22%3A%5B" +
+					"%7B%22Type%22%3A6%2C%22__type%22%3A%22Skyline.DataMiner.Web.Common.v1.DMAApplicationPagePanelAction%22%2C%22Panel" +
+					"%22%3A%22e227c3e7-b0d6-4eaa-bc01-7d96a61b97a8" +
+					"%22%2C%22Position%22%3A%22Right" +
+					"%22%2C%22Width%22%3A70%2C" +
+					"%22AsOverlay%22%3Atrue%2C" +
+					"%22Draggable%22%3Afalse" +
+					"%2C%22PostActions%22%3Anull%7D%5D%7D",
 				},
 				Parent = new LinkDetailsConfiguration()
 				{
