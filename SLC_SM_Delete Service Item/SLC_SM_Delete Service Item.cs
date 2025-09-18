@@ -125,29 +125,20 @@ namespace SLC_SM_Delete_Service_Item_1
 
 		private void DeleteServiceItemFromInstance(DomHelper helper, DomInstance domInstance, string label)
 		{
-			if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.Services.Id)
+			var instance = ServiceInstancesExtentions.GetTypedInstance(domInstance);
+			var serviceItemToRemove = instance.GetServiceItems().FirstOrDefault(x => x.Label == label);
+			if (serviceItemToRemove != null && !LinkedReferenceStillActive(serviceItemToRemove.ServiceItemType, serviceItemToRemove.ImplementationReference))
 			{
-				var instance = new ServicesInstance(domInstance);
-				var serviceItemToRemove = instance.ServiceItemses.FirstOrDefault(x => x.Label == label);
-				if (serviceItemToRemove != null && !LinkedReferenceStillActive(serviceItemToRemove.ServiceItemType, serviceItemToRemove.ImplementationReference))
-				{
-					instance.ServiceItemses.Remove(serviceItemToRemove);
-					instance.Save(helper);
-				}
-			}
-			else if (domInstance.DomDefinitionId.Id == SlcServicemanagementIds.Definitions.ServiceSpecifications.Id)
-			{
-				var instance = new ServiceSpecificationsInstance(domInstance);
-				var serviceItemToRemove = instance.ServiceItemses.FirstOrDefault(x => x.Label == label);
-				if (serviceItemToRemove != null && !LinkedReferenceStillActive(serviceItemToRemove.ServiceItemType, serviceItemToRemove.ImplementationReference))
-				{
-					instance.ServiceItemses.Remove(serviceItemToRemove);
-					instance.Save(helper);
-				}
-			}
-			else
-			{
-				throw new InvalidOperationException($"DOM definition '{domInstance.DomDefinitionId}' not supported (yet).");
+				instance.GetServiceItems().Remove(serviceItemToRemove);
+
+				var id = serviceItemToRemove.ServiceItemID?.ToString();
+				var relationships = instance
+					.GetServiceItemRelationships()
+					.Where(r => r.ParentServiceItem == id || r.ChildServiceItem == id);
+
+				relationships.ToList().ForEach(r => instance.GetServiceItemRelationships().Remove(r));
+
+				instance.Save(helper);
 			}
 		}
 
